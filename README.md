@@ -67,8 +67,7 @@ A MERN stack application for smart plot investments with role-based access contr
     - Use different database names (e.g., `admin_db` and `snip_db`) to avoid Atlas restrictions.
     - Generate a secure `JWT_SECRET`.
 
-## Running the Server
-
+   **Note:** For Vercel deployment, set these same environment variables in your Vercel project settings.
 1. **Start the development server:**
 
     ```bash
@@ -154,6 +153,42 @@ A MERN stack application for smart plot investments with role-based access contr
     - GET `{{baseUrl}}/api/public` (no auth needed)
 
 ## Deployment
+
+### Deploying to Vercel (with push/pull permissions only)
+
+If you only have push and pull permissions to the repository (not admin access), you can still deploy using Vercel by forking the repository:
+
+1. **Fork the repository:**
+   - Go to the original repository on GitHub
+   - Click "Fork" in the top-right corner
+   - This creates a copy in your GitHub account
+
+2. **Connect to Vercel:**
+   - Go to [vercel.com](https://vercel.com) and sign in
+   - Click "New Project"
+   - Import your forked repository
+   - Vercel will detect the `vercel.json` configuration
+
+3. **Configure Environment Variables:**
+   - In your Vercel project dashboard, go to Settings → Environment Variables
+   - Add the same variables as in your `.env` file:
+     - `ADMIN_MONGO_URI`
+     - `SNIP_MONGO_URI`
+     - `JWT_SECRET`
+
+4. **Deploy:**
+   - Click "Deploy"
+   - Vercel will build and deploy your backend
+   - You'll get a deployment URL (e.g., `https://your-project.vercel.app`)
+
+5. **Update the README:**
+   - Replace the deployment link in this README with your actual Vercel URL
+
+### Alternative Deployment Options
+
+- **Railway:** `railway login` → `railway link` → `railway up`
+- **Heroku:** `heroku create` → `git push heroku main`
+- **Render:** Connect GitHub repo and configure environment variables
 
 The application is deployed on Vercel. Access it here: [Smart Plot Investment Portal](https://smart-plot-investment-portal.vercel.app)
 
