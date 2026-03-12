@@ -127,6 +127,50 @@ A MERN stack application for smart plot investments with role-based access contr
         }
         ```
 
+---
+
+## Frontend setup
+
+The repository includes a React frontend located at `Smart-Plot-Investment-Portal/frontend`.
+
+1. **Change to the frontend folder:**
+   ```bash
+   cd Smart-Plot-Investment-Portal/frontend
+   ```
+2. **Install packages:**
+   ```bash
+   npm install
+   ```
+3. **Create `.env` or update the existing one:**
+   ```env
+   VITE_API_URL=http://localhost:5001
+   # or https://smart-plot-investment-backend.vercel.app
+   ```
+4. **Run the dev server:**
+   ```bash
+   npm run dev
+   ```
+
+> If the browser shows "localhost refused to connect", make sure the dev script above is running in the frontend directory and look at the terminal output – Vite should report:
+>
+> ```
+>   VITE v3.x.x  ready in xxx ms
+>   ➜  Local:   http://localhost:3000/
+>   ➜  Network: use --host to expose
+> ```
+>
+> The server listens on port 3000 (configured in `vite.config.js`); adjust your address accordingly.
+
+The UI will open at `http://localhost:3000` by default. It includes signup, login, home, and a protected dashboard page; it uses TailwindCSS, Shadcn-style components, toast notifications, and basic form validation.
+
+---
+
+## Deployment
+
+The application is deployed on Vercel. Access it here: [Smart Plot Investment Backend](https://smart-plot-investment-backend.vercel.app)
+
+For backend deployment, consider platforms like Heroku, Railway, or Vercel Functions.
+
 3. **Test Login:**
     - Method: POST
     - URL: `{{baseUrl}}/api/auth/login`
