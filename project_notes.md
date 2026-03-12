@@ -11,3 +11,6 @@
 - Everyone are working on the project and interacting with each other to comeplete the tasks.
 - After completing their assigned task , we are updating the same and moving on to next implementation.
 
+## Updates - 12/3/26
+- Till now our team has completed their respective tasks.
+- The project implementation had started and currently we have done the signup / signin phase, a hoempage and a dashboard that shows our project motto and information.
