@@ -5,7 +5,9 @@ dotenv.config();
 const express = require("express");
 const cors = require("cors");
 const { adminConn, snipConn, connectAll } = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
+const authRoutes = require('./routes/authRoutes');
+const builderRoutes = require('./routes/builderRoutes');
+const projectRoutes = require('./routes/projectRoutes');
 const { authenticate, authorize } = require("./middleware/auth");
 
 const app = express();
@@ -13,6 +15,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
+app.use("/api/builders", builderRoutes);
+app.use("/api/projects", projectRoutes);
 
 // test routes
 app.get("/api/public", (req, res) => {

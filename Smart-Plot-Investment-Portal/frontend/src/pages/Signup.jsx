@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
 import {
     User,
     Mail,
@@ -9,6 +9,8 @@ import {
     ShieldCheck,
     Loader2,
     ArrowRight,
+    EyeOff,
+    Eye,
 } from "lucide-react";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
@@ -31,10 +33,6 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { toast } from "sonner";
 
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5001",
-});
-
 const roles = [
     {
         value: "investor",
@@ -52,14 +50,18 @@ const roles = [
 ];
 
 export default function Signup() {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [form, setForm] = useState({
         name: "",
         email: "",
         password: "",
+        confirmPassword: "",
         phone: "",
         role: "investor",
+        companyName: "",
     });
 
     const handleChange = (e) =>
@@ -87,12 +89,20 @@ export default function Signup() {
             toast.error("Password must be at least 6 characters");
             return false;
         }
+        if(form.password?.trim() !== form.confirmPassword?.trim()){
+            toast.error("Confrim Password should be same as password");
+            return false;
+        }
         if (!form.phone?.trim()) {
             toast.error("Phone is required");
             return false;
         }
         if (!/^\d{10}$/.test(form.phone)) {
             toast.error("Phone must be 10 digits");
+            return false;
+        }
+        if (form.role === "builder" && !form.companyName?.trim()) {
+            toast.error("Company name is required for builders");
             return false;
         }
         return true;
@@ -103,7 +113,23 @@ export default function Signup() {
         if (!validateForm()) return;
         setIsLoading(true);
         try {
-            await api.post("/api/auth/signup", form);
+            const endpoint =
+                form.role === "builder"
+                    ? "/api/builders/register"
+                    : "/api/auth/signup";
+
+            const payload =
+                form.role === "builder"
+                    ? {
+                          name: form.name,
+                          email: form.email,
+                          password: form.password,
+                          phone: form.phone,
+                          companyName: form.companyName,
+                      }
+                    : form;
+
+            await api.post(endpoint, payload);
             toast.success("Account created! Redirecting...");
             setTimeout(() => navigate("/login"), 1500);
         } catch (err) {
@@ -208,17 +234,79 @@ export default function Signup() {
                                 >
                                     Password
                                 </Label>
+
                                 <div className="relative">
+                                    {/* Left Icon */}
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
                                     <Input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={
+                                            showPassword ? "text" : "password"
+                                        }
                                         value={form.password}
                                         onChange={handleChange}
-                                        placeholder="Min. 6 characters"
-                                        className="pl-10 bg-background/60 border-border focus:border-primary transition-colors"
+                                        placeholder="Password"
+                                        className="pl-10 pr-10 bg-background/60 border-border focus:border-primary transition-colors"
                                     />
+
+                                    {/* Show/Hide Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowPassword(!showPassword)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div className="space-y-2">
+                                <Label
+                                    htmlFor="confirmPassword"
+                                    className="text-xs tracking-wider uppercase text-muted-foreground font-medium"
+                                >
+                                   Confirm Password
+                                </Label>
+
+                                <div className="relative">
+                                    {/* Left Icon */}
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+                                    <Input
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type={
+                                            showConfirmPassword ? "text" : "password"
+                                        }
+                                        value={form.confirmPassword}
+                                        onChange={handleChange}
+                                        placeholder="Confirm Password"
+                                        className="pl-10 pr-10 bg-background/60 border-border focus:border-primary transition-colors"
+                                    />
+
+                                    {/* Show/Hide Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowConfirmPassword(!showConfirmPassword)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
 
@@ -242,6 +330,28 @@ export default function Signup() {
                                     />
                                 </div>
                             </div>
+
+                            {form.role === "builder" && (
+                                <div className="space-y-2">
+                                    <Label
+                                        htmlFor="companyName"
+                                        className="text-xs tracking-wider uppercase text-muted-foreground font-medium"
+                                    >
+                                        Company Name
+                                    </Label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="companyName"
+                                            name="companyName"
+                                            value={form.companyName}
+                                            onChange={handleChange}
+                                            placeholder="Your company name"
+                                            className="pl-10 bg-background/60 border-border focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Role */}
                             <div className="space-y-2">

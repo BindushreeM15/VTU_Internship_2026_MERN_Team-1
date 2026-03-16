@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
-import { Mail, Lock, LogIn, Loader2, ShieldCheck } from "lucide-react";
+import api from "../utils/api";
+import {
+    Mail,
+    Lock,
+    LogIn,
+    Loader2,
+    ShieldCheck,
+    Eye,
+    EyeOff,
+} from "lucide-react";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import {
@@ -22,10 +30,6 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { toast } from "sonner";
-
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5001",
-});
 
 const roles = [
     {
@@ -51,6 +55,7 @@ const roles = [
 export default function Login() {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -82,10 +87,29 @@ export default function Login() {
         if (!validateForm()) return;
         setIsLoading(true);
         try {
-            const res = await api.post("/api/auth/login", form);
+            const endpoint =
+                form.role === "builder"
+                    ? "/api/builders/login"
+                    : "/api/auth/login";
+
+            const payload =
+                form.role === "builder"
+                    ? {
+                          email: form.email,
+                          password: form.password,
+                      }
+                    : form;
+
+            const res = await api.post(endpoint, payload);
             localStorage.setItem("token", res.data.token);
             toast.success("Login successful! Redirecting...");
-            setTimeout(() => navigate("/dashboard"), 1500);
+            setTimeout(() => {
+                if (form.role === "builder") {
+                    navigate("/dashboard/builder");
+                } else {
+                    navigate("/dashboard");
+                }
+            }, 1500);
         } catch (err) {
             toast.error(err.response?.data?.error || "Login failed");
         } finally {
@@ -166,17 +190,37 @@ export default function Login() {
                                 >
                                     Password
                                 </Label>
+
                                 <div className="relative">
+                                    {/* Left Icon */}
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
                                     <Input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={
+                                            showPassword ? "text" : "password"
+                                        }
                                         value={form.password}
                                         onChange={handleChange}
-                                        placeholder="••••••••"
-                                        className="pl-10 bg-background/60 border-border focus:border-primary transition-colors"
+                                        placeholder="Password"
+                                        className="pl-10 pr-10 bg-background/60 border-border focus:border-primary transition-colors"
                                     />
+
+                                    {/* Show/Hide Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowPassword(!showPassword)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
 

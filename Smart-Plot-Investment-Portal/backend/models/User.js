@@ -23,10 +23,23 @@ const userSchema = new mongoose.Schema({
     required: true,
     match: [/^[0-9]{10}$/, "Phone number must be 10 digits"],
   },
+  companyName: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === "builder";
+    },
+  },
   role: {
     type: String,
     required: true,
     enum: ["investor", "builder", "admin"],
+  },
+  companyName: {
+    type: String,
+    required: function () {
+      return this.role === "builder";
+    },
   },
 }, { timestamps: true });
 
