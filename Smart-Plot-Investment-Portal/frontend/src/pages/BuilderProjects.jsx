@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Plus, Trash2, Pencil, Loader2, X, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import api from "../utils/api";
 import MapComponent from "../components/MapComponent";
+import { Upload } from "lucide-react";
 
 // ── Delete Confirmation Modal ────────────────────────────────────────────────
 function DeleteModal({ project, onConfirm, onCancel }) {
@@ -24,13 +30,16 @@ function DeleteModal({ project, onConfirm, onCancel }) {
                         <AlertTriangle className="h-5 w-5 text-destructive" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-foreground">Delete Project</h3>
+                        <h3 className="font-semibold text-foreground">
+                            Delete Project
+                        </h3>
                         <p className="text-sm text-muted-foreground mt-1">
                             Are you sure you want to delete{" "}
                             <span className="font-medium text-foreground">
                                 {project.projectName}
                             </span>
-                            ? All associated plots will also be removed. This action cannot be undone.
+                            ? All associated plots will also be removed. This
+                            action cannot be undone.
                         </p>
                     </div>
                 </div>
@@ -52,6 +61,13 @@ export default function BuilderProjects() {
     const [projects, setProjects] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const [selectedFiles, setSelectedFiles] = useState([]);
+
+    const handleButtonClick = () => {
+        fileInputRef.current.click();
+    };
 
     const [form, setForm] = useState({
         projectName: "",
@@ -86,34 +102,60 @@ export default function BuilderProjects() {
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
-        if (name === 'images') {
+        if (name === "images") {
             setForm({ ...form, images: Array.from(files) });
         } else {
             setForm({ ...form, [name]: value });
         }
     };
 
+    const handleFileChange = (e) => {
+        setSelectedFiles([...e.target.files]);
+        handleChange(e);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.projectName.trim() || !form.location.trim() || !form.description.trim()) return;
+        if (
+            !form.projectName.trim() ||
+            !form.location.trim() ||
+            !form.description.trim()
+        )
+            return;
 
         const formData = new FormData();
-        formData.append('projectName', form.projectName);
-        formData.append('location', form.location);
-        formData.append('latitude', form.latitude);
-        formData.append('longitude', form.longitude);
-        formData.append('description', form.description);
-        formData.append('amenities', JSON.stringify(form.amenities.split(',').map(a => a.trim()).filter(a => a)));
+        formData.append("projectName", form.projectName);
+        formData.append("location", form.location);
+        formData.append("latitude", form.latitude);
+        formData.append("longitude", form.longitude);
+        formData.append("description", form.description);
+        formData.append(
+            "amenities",
+            JSON.stringify(
+                form.amenities
+                    .split(",")
+                    .map((a) => a.trim())
+                    .filter((a) => a),
+            ),
+        );
 
-        form.images.forEach(image => {
-            formData.append('images', image);
+        form.images.forEach((image) => {
+            formData.append("images", image);
         });
 
         try {
             await api.post("/api/projects/create", formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { "Content-Type": "multipart/form-data" },
             });
-            setForm({ projectName: "", location: "", latitude: "", longitude: "", description: "", amenities: "", images: [] });
+            setForm({
+                projectName: "",
+                location: "",
+                latitude: "",
+                longitude: "",
+                description: "",
+                amenities: "",
+                images: [],
+            });
             fetchProjects();
         } catch (err) {
             setError(err.response?.data?.error || "Failed to create project");
@@ -142,38 +184,62 @@ export default function BuilderProjects() {
             latitude: project.latitude || "",
             longitude: project.longitude || "",
             description: project.description,
-            amenities: project.amenities ? project.amenities.join(', ') : "",
+            amenities: project.amenities ? project.amenities.join(", ") : "",
             images: [],
         });
     };
 
     const cancelEdit = () => {
         setEditingId(null);
-        setForm({ projectName: "", location: "", latitude: "", longitude: "", description: "", amenities: "", images: [] });
+        setForm({
+            projectName: "",
+            location: "",
+            latitude: "",
+            longitude: "",
+            description: "",
+            amenities: "",
+            images: [],
+        });
     };
 
     const handleUpdate = async () => {
         if (!editingId) return;
 
         const formData = new FormData();
-        formData.append('projectId', editingId);
-        formData.append('projectName', form.projectName);
-        formData.append('location', form.location);
-        formData.append('latitude', form.latitude);
-        formData.append('longitude', form.longitude);
-        formData.append('description', form.description);
-        formData.append('amenities', JSON.stringify(form.amenities.split(',').map(a => a.trim()).filter(a => a)));
+        formData.append("projectId", editingId);
+        formData.append("projectName", form.projectName);
+        formData.append("location", form.location);
+        formData.append("latitude", form.latitude);
+        formData.append("longitude", form.longitude);
+        formData.append("description", form.description);
+        formData.append(
+            "amenities",
+            JSON.stringify(
+                form.amenities
+                    .split(",")
+                    .map((a) => a.trim())
+                    .filter((a) => a),
+            ),
+        );
 
-        form.images.forEach(image => {
-            formData.append('images', image);
+        form.images.forEach((image) => {
+            formData.append("images", image);
         });
 
         try {
             await api.put("/api/projects/update-project", formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { "Content-Type": "multipart/form-data" },
             });
             setEditingId(null);
-            setForm({ projectName: "", location: "", latitude: "", longitude: "", description: "", amenities: "", images: [] });
+            setForm({
+                projectName: "",
+                location: "",
+                latitude: "",
+                longitude: "",
+                description: "",
+                amenities: "",
+                images: [],
+            });
             fetchProjects();
         } catch (err) {
             setError(err.response?.data?.error || "Failed to update project");
@@ -220,15 +286,20 @@ export default function BuilderProjects() {
                                 Project Images
                             </p>
                             <div className="flex flex-wrap justify-center gap-2">
-                                {project.images.slice(0, 4).map((image, index) => (
-                                    <div key={index} className="flex items-center justify-center p-2">
-                                        <img
-                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/${image}`}
-                                            alt={`Project ${index + 1}`}
-                                            className="w-60 h-40 object-cover rounded-md border"
-                                        />
-                                    </div>
-                                ))}
+                                {project.images
+                                    .slice(0, 4)
+                                    .map((image, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center justify-center p-2"
+                                        >
+                                            <img
+                                                src={`${import.meta.env.VITE_API_URL || "http://localhost:5001"}/${image}`}
+                                                alt={`Project ${index + 1}`}
+                                                className="w-60 h-40 object-cover rounded-md border"
+                                            />
+                                        </div>
+                                    ))}
                             </div>
                         </div>
                     )}
@@ -241,7 +312,11 @@ export default function BuilderProjects() {
                             </p>
                             <div className="flex flex-wrap gap-1">
                                 {project.amenities.map((amenity, index) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
+                                    <Badge
+                                        key={index}
+                                        variant="default"
+                                        className="text-xs capitalize"
+                                    >
                                         {amenity}
                                     </Badge>
                                 ))}
@@ -318,7 +393,14 @@ export default function BuilderProjects() {
                     </CardHeader>
                     <CardContent>
                         <form
-                            onSubmit={editingId ? (e) => { e.preventDefault(); handleUpdate(); } : handleSubmit}
+                            onSubmit={
+                                editingId
+                                    ? (e) => {
+                                          e.preventDefault();
+                                          handleUpdate();
+                                      }
+                                    : handleSubmit
+                            }
                             className="grid gap-4"
                         >
                             <div className="grid gap-3 sm:grid-cols-3">
@@ -401,30 +483,65 @@ export default function BuilderProjects() {
                                     />
                                 </div>
                             </div>
-                            <div>
+                            <div className="space-y-2">
                                 <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
                                     Project Images
                                 </label>
-                                <Input
+
+                                {/* Hidden Input */}
+                                <input
+                                    ref={fileInputRef}
                                     name="images"
                                     type="file"
                                     multiple
                                     accept="image/*"
-                                    onChange={handleChange}
-                                    className="mt-1"
+                                    onChange={handleFileChange}
+                                    className="hidden"
                                 />
+
+                                {/* Custom Button */}
+                                <div className="flex gap-2 w-full items-center flex-wrap p-1 border rounded-lg">
+                                <Button
+                                    type="button"
+                                    // variant="outline"
+                                    onClick={handleButtonClick}
+                                    className="flex items-center justify-center gap-2 border-primary/40 hover:border-primary hover:bg-primary/5"
+                                >
+                                    <Upload className="h-4 w-4" />
+                                    Upload Image
+                                </Button>
+                                {selectedFiles.length > 0 && (
+                                    <div className="text-base text-muted-foreground space-y-1">
+                                        {selectedFiles.map((file, i) => (
+                                            <p key={i}>{file.name}</p>
+                                        ))}
+                                    </div>
+                                )}
+                                </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <Button type="submit" disabled={isLoading} className="gap-2">
+                                <Button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="gap-2"
+                                >
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="h-4 w-4 animate-spin" />
-                                            {editingId ? "Updating…" : "Creating…"}
+                                            {editingId
+                                                ? "Updating…"
+                                                : "Creating…"}
                                         </>
                                     ) : (
                                         <>
-                                            {editingId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                            {editingId ? "Update Project" : "Create Project"}
+                                            {editingId ? (
+                                                <Pencil className="h-4 w-4" />
+                                            ) : (
+                                                <Plus className="h-4 w-4" />
+                                            )}
+                                            {editingId
+                                                ? "Update Project"
+                                                : "Create Project"}
                                         </>
                                     )}
                                 </Button>
@@ -445,7 +562,9 @@ export default function BuilderProjects() {
                 </Card>
 
                 {error && (
-                    <p className="text-sm text-destructive font-medium">{error}</p>
+                    <p className="text-sm text-destructive font-medium">
+                        {error}
+                    </p>
                 )}
 
                 <div className="grid gap-4 md:grid-cols-2">{projectCards}</div>

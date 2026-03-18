@@ -158,7 +158,7 @@ export default function Navbar() {
                                 </span>
                             </Button>
 
-                            <Separator orientation="vertical" className="h-5" />
+                            <Separator orientation="vertical" className="h-10" />
 
                             {token ? (
                                 <>
@@ -184,7 +184,7 @@ export default function Navbar() {
                                         ))}
                                     </div>
 
-                                    <Separator orientation="vertical" className="h-5 hidden md:block" />
+                                    <Separator orientation="vertical" className="h-10 hidden md:block" />
 
                                     {/* Logout — desktop */}
                                     <Button

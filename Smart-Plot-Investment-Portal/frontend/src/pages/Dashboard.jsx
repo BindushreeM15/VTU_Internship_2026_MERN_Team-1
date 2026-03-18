@@ -494,12 +494,12 @@ export default function Dashboard() {
             ? [
                 { icon: FolderKanban, label: "Total Projects", value: String(stats.projectCount), sub: "Active listings" },
                 { icon: MapPin,       label: "Total Plots",    value: String(stats.plotCount),    sub: "Across all projects" },
-                { icon: Clock,        label: "Member Since",   value: formatDate(user?.createdAt), sub: "Account age" },
+                { icon: Clock,        label: "Member Since",   value: formatDate(user?.joinedAt), sub: "Account age" },
               ]
             : [
                 { icon: TrendingUp, label: "Portfolio Value", value: "₹0",  sub: "No investments yet" },
                 { icon: Activity,   label: "Active Plots",    value: "0",   sub: "Plots tracked" },
-                { icon: Clock,      label: "Member Since",    value: formatDate(user?.createdAt), sub: "Account age" },
+                { icon: Clock,      label: "Member Since",    value: formatDate(user?.joinedAt), sub: "Account age" },
               ];
 
     return (

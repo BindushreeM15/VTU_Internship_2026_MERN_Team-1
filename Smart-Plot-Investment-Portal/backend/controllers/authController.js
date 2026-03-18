@@ -75,6 +75,7 @@ exports.login = async (req, res) => {
                 email: user.email,
                 phone: user.phone,
                 role: user.role,
+                joinedAt: user.createdAt,
             },
             process.env.JWT_SECRET,
             { expiresIn: "1h" },
@@ -89,6 +90,7 @@ exports.login = async (req, res) => {
                 email: user.email,
                 phone: user.phone,
                 role: user.role,
+                joinedAt: user.createdAt,
             },
         });
     } catch (error) {

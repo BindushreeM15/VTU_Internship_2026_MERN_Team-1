@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Trash2, Edit3, Loader2, Plus, X, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import {
@@ -29,7 +34,9 @@ function DeleteModal({ plot, onConfirm, onCancel }) {
                         <AlertTriangle className="h-5 w-5 text-destructive" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-foreground">Delete Plot</h3>
+                        <h3 className="font-semibold text-foreground">
+                            Delete Plot
+                        </h3>
                         <p className="text-sm text-muted-foreground mt-1">
                             Are you sure you want to delete{" "}
                             <span className="font-medium text-foreground">
@@ -91,7 +98,10 @@ export default function BuilderPlots() {
             const res = await api.get("/api/projects/my-projects");
             setProjects(res.data.projects || []);
             if (!addForm.projectId && res.data.projects?.length) {
-                setAddForm((prev) => ({ ...prev, projectId: res.data.projects[0]._id }));
+                setAddForm((prev) => ({
+                    ...prev,
+                    projectId: res.data.projects[0]._id,
+                }));
             }
             setError(null);
         } catch (err) {
@@ -140,7 +150,14 @@ export default function BuilderPlots() {
                 facingDirection: addForm.facingDirection,
                 roadWidth: addForm.roadWidth,
             });
-            setAddForm((prev) => ({ ...prev, plotNumber: "", size: "", price: "", facingDirection: "", roadWidth: "" }));
+            setAddForm((prev) => ({
+                ...prev,
+                plotNumber: "",
+                size: "",
+                price: "",
+                facingDirection: "",
+                roadWidth: "",
+            }));
             fetchPlots();
             setError(null);
         } catch (err) {
@@ -163,7 +180,14 @@ export default function BuilderPlots() {
 
     const cancelEdit = () => {
         setEditingPlot(null);
-        setEditForm({ plotNumber: "", size: "", price: "", status: "", facingDirection: "", roadWidth: "" });
+        setEditForm({
+            plotNumber: "",
+            size: "",
+            price: "",
+            status: "",
+            facingDirection: "",
+            roadWidth: "",
+        });
     };
 
     const handleEditChange = (e) =>
@@ -245,10 +269,14 @@ export default function BuilderPlots() {
                     <p className="mt-2 text-sm text-muted-foreground">
                         Size: {plot.size}
                         {plot.roadWidth ? (
-                            <span className="inline-block ml-4">Road: {plot.roadWidth}</span>
+                            <span className="inline-block ml-4">
+                                Road: {plot.roadWidth}
+                            </span>
                         ) : null}
                         {plot.facingDirection ? (
-                            <span className="inline-block ml-4">Facing: {plot.facingDirection}</span>
+                            <span className="inline-block ml-4">
+                                Facing: {plot.facingDirection}
+                            </span>
                         ) : null}
                     </p>
 
@@ -384,22 +412,47 @@ export default function BuilderPlots() {
                                         <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
                                             Facing Direction
                                         </label>
-                                        <select
-                                            name="facingDirection"
+
+                                        <Select
                                             value={addForm.facingDirection}
-                                            onChange={handleAddChange}
-                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                            onValueChange={(value) =>
+                                                setAddForm((prev) => ({
+                                                    ...prev,
+                                                    facingDirection: value,
+                                                }))
+                                            }
                                         >
-                                            <option value="">Select direction</option>
-                                            <option value="north">North</option>
-                                            <option value="south">South</option>
-                                            <option value="east">East</option>
-                                            <option value="west">West</option>
-                                            <option value="northeast">Northeast</option>
-                                            <option value="northwest">Northwest</option>
-                                            <option value="southeast">Southeast</option>
-                                            <option value="southwest">Southwest</option>
-                                        </select>
+                                            <SelectTrigger className="w-full mt-1">
+                                                <SelectValue placeholder="Select Direction" />
+                                            </SelectTrigger>
+
+                                            <SelectContent>
+                                                <SelectItem value="north">
+                                                    North
+                                                </SelectItem>
+                                                <SelectItem value="south">
+                                                    South
+                                                </SelectItem>
+                                                <SelectItem value="east">
+                                                    East
+                                                </SelectItem>
+                                                <SelectItem value="west">
+                                                    West
+                                                </SelectItem>
+                                                <SelectItem value="northeast">
+                                                    Northeast
+                                                </SelectItem>
+                                                <SelectItem value="northwest">
+                                                    Northwest
+                                                </SelectItem>
+                                                <SelectItem value="southeast">
+                                                    Southeast
+                                                </SelectItem>
+                                                <SelectItem value="southwest">
+                                                    Southwest
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div>
                                         <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
@@ -470,37 +523,78 @@ export default function BuilderPlots() {
                                         <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
                                             Status
                                         </label>
-                                        <select
-                                            name="status"
+
+                                        <Select
                                             value={editForm.status}
-                                            onChange={handleEditChange}
-                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                            onValueChange={(value) =>
+                                                setEditForm((prev) => ({
+                                                    ...prev,
+                                                    status: value,
+                                                }))
+                                            }
                                         >
-                                            <option value="available">Available</option>
-                                            <option value="reserved">Reserved</option>
-                                            <option value="sold">Sold</option>
-                                        </select>
+                                            <SelectTrigger className="w-full mt-1 bg-background/50 border-border">
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+
+                                            <SelectContent>
+                                                <SelectItem value="available">
+                                                    Available
+                                                </SelectItem>
+                                                <SelectItem value="reserved">
+                                                    Reserved
+                                                </SelectItem>
+                                                <SelectItem value="sold">
+                                                    Sold
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div>
                                         <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
                                             Facing Direction
                                         </label>
-                                        <select
-                                            name="facingDirection"
+
+                                        <Select
                                             value={editForm.facingDirection}
-                                            onChange={handleEditChange}
-                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                            onValueChange={(value) =>
+                                                setEditForm((prev) => ({
+                                                    ...prev,
+                                                    facingDirection: value,
+                                                }))
+                                            }
                                         >
-                                            <option value="">Select direction</option>
-                                            <option value="north">North</option>
-                                            <option value="south">South</option>
-                                            <option value="east">East</option>
-                                            <option value="west">West</option>
-                                            <option value="northeast">Northeast</option>
-                                            <option value="northwest">Northwest</option>
-                                            <option value="southeast">Southeast</option>
-                                            <option value="southwest">Southwest</option>
-                                        </select>
+                                            <SelectTrigger className="w-full mt-1 bg-background/50 border-border">
+                                                <SelectValue placeholder="Select direction" />
+                                            </SelectTrigger>
+
+                                            <SelectContent>
+                                                <SelectItem value="north">
+                                                    North
+                                                </SelectItem>
+                                                <SelectItem value="south">
+                                                    South
+                                                </SelectItem>
+                                                <SelectItem value="east">
+                                                    East
+                                                </SelectItem>
+                                                <SelectItem value="west">
+                                                    West
+                                                </SelectItem>
+                                                <SelectItem value="northeast">
+                                                    Northeast
+                                                </SelectItem>
+                                                <SelectItem value="northwest">
+                                                    Northwest
+                                                </SelectItem>
+                                                <SelectItem value="southeast">
+                                                    Southeast
+                                                </SelectItem>
+                                                <SelectItem value="southwest">
+                                                    Southwest
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div>
                                         <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
@@ -517,7 +611,11 @@ export default function BuilderPlots() {
                                 </div>
 
                                 <div className="flex items-center gap-3 pt-1">
-                                    <Button onClick={handleUpdate} disabled={isLoading} className="gap-2">
+                                    <Button
+                                        onClick={handleUpdate}
+                                        disabled={isLoading}
+                                        className="gap-2"
+                                    >
                                         {isLoading ? (
                                             <>
                                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -527,7 +625,11 @@ export default function BuilderPlots() {
                                             "Save Changes"
                                         )}
                                     </Button>
-                                    <Button variant="secondary" onClick={cancelEdit} className="gap-2">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={cancelEdit}
+                                        className="gap-2"
+                                    >
                                         <X className="h-4 w-4" />
                                         Cancel
                                     </Button>
@@ -538,7 +640,9 @@ export default function BuilderPlots() {
                 </Card>
 
                 {error && (
-                    <p className="text-sm text-destructive font-medium">{error}</p>
+                    <p className="text-sm text-destructive font-medium">
+                        {error}
+                    </p>
                 )}
 
                 <div className="grid gap-4 md:grid-cols-2">{plotCards}</div>

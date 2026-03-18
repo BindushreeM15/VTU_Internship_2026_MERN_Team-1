@@ -80,6 +80,7 @@ exports.login = async (req, res) => {
                 phone: user.phone,
                 role: user.role,
                 companyName: user.companyName,
+                joinedAt: user.createdAt,
             },
             process.env.JWT_SECRET,
             { expiresIn: "1h" },
@@ -92,8 +93,11 @@ exports.login = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
+                phone: user.phone,
                 role: user.role,
                 companyName: user.companyName,
+                joinedAt: user.createdAt,
+
             },
         });
     } catch (error) {
