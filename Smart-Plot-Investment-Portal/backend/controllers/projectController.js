@@ -4,20 +4,30 @@ const Project = require("../models/Project");
 
 exports.createProject = async (req, res) => {
     try {
-        const { projectName, location, description } = req.body;
+        console.log('Create project request:', req.body, req.files);
+        const { projectName, location, latitude, longitude, description, amenities } = req.body;
         const builderId = req.user.id;
 
         if (!projectName || !location || !description) {
-            return res.status(400).json({ error: "All fields are required" });
+            return res.status(400).json({ error: "Project name, location, and description are required" });
         }
+
+        // Handle uploaded images
+        const images = req.files ? req.files.map(file => file.path) : [];
+        console.log('Images:', images);
 
         const project = new Project({
             projectName,
             location,
+            latitude: latitude && latitude.trim() ? parseFloat(latitude) : undefined,
+            longitude: longitude && longitude.trim() ? parseFloat(longitude) : undefined,
             description,
+            amenities: amenities ? JSON.parse(amenities) : [],
+            images,
             builderId,
         });
 
+        console.log('Saving project:', project);
         await project.save();
 
         res.status(201).json({
@@ -25,6 +35,7 @@ exports.createProject = async (req, res) => {
             project,
         });
     } catch (error) {
+        console.error('Create project error:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -45,8 +56,7 @@ exports.getBuilderProjects = async (req, res) => {
 
 exports.updateProject = async (req, res) => {
     try {
-        const { projectId, projectName, location, description, status } =
-            req.body;
+        const { projectId, projectName, location, latitude, longitude, description, amenities, status } = req.body;
         const builderId = req.user.id;
 
         if (!projectId) {
@@ -60,8 +70,17 @@ exports.updateProject = async (req, res) => {
 
         if (projectName !== undefined) project.projectName = projectName;
         if (location !== undefined) project.location = location;
+        if (latitude !== undefined) project.latitude = latitude && latitude.trim() ? parseFloat(latitude) : undefined;
+        if (longitude !== undefined) project.longitude = longitude && longitude.trim() ? parseFloat(longitude) : undefined;
         if (description !== undefined) project.description = description;
+        if (amenities !== undefined) project.amenities = JSON.parse(amenities);
         if (status !== undefined) project.status = status;
+
+        // Handle new uploaded images
+        if (req.files && req.files.length > 0) {
+            const newImages = req.files.map(file => file.path);
+            project.images = [...(project.images || []), ...newImages];
+        }
 
         await project.save();
 
@@ -118,6 +137,8 @@ exports.getAllBuildersPlots = async (req, res) => {
                 size: plot.size,
                 price: plot.price,
                 status: plot.status,
+                facingDirection: plot.facingDirection,
+                roadWidth: plot.roadWidth,
             })),
         );
 
@@ -131,7 +152,7 @@ exports.getAllBuildersPlots = async (req, res) => {
 
 exports.addPlot = async (req, res) => {
     try {
-        const { projectId, plotNumber, size, price } = req.body;
+        const { projectId, plotNumber, size, price, facingDirection, roadWidth } = req.body;
         const builderId = req.user.id;
 
         const project = await Project.findOne({ _id: projectId, builderId });
@@ -154,6 +175,8 @@ exports.addPlot = async (req, res) => {
             plotNumber,
             size,
             price,
+            facingDirection,
+            roadWidth,
         });
 
         await project.save();
@@ -169,7 +192,7 @@ exports.addPlot = async (req, res) => {
 
 exports.updatePlot = async (req, res) => {
     try {
-        const { projectId, plotId, plotNumber, size, price, status } = req.body;
+        const { projectId, plotId, plotNumber, size, price, status, facingDirection, roadWidth } = req.body;
         const builderId = req.user.id;
 
         const project = await Project.findOne({ _id: projectId, builderId });
@@ -184,10 +207,12 @@ exports.updatePlot = async (req, res) => {
             return res.status(404).json({ error: "Plot not found" });
         }
 
-        if (plotNumber) plot.plotNumber = plotNumber;
-        if (size) plot.size = size;
-        if (price) plot.price = price;
-        if (status) plot.status = status;
+        if (plotNumber !== undefined) plot.plotNumber = plotNumber;
+        if (size !== undefined) plot.size = size;
+        if (price !== undefined) plot.price = price;
+        if (status !== undefined) plot.status = status;
+        if (facingDirection !== undefined) plot.facingDirection = facingDirection;
+        if (roadWidth !== undefined) plot.roadWidth = roadWidth;
 
         await project.save();
 

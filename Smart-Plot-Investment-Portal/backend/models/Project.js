@@ -19,6 +19,15 @@ const plotSchema = new mongoose.Schema({
     enum: ['available', 'sold', 'reserved'],
     default: 'available',
   },
+  facingDirection: {
+    type: String,
+    enum: ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'],
+    required: false,
+  },
+  roadWidth: {
+    type: String, // e.g., "30 feet", "40 feet"
+    required: false,
+  },
 }, { _id: true });
 
 const projectSchema = new mongoose.Schema({
@@ -32,11 +41,26 @@ const projectSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  latitude: {
+    type: Number,
+    required: false,
+  },
+  longitude: {
+    type: Number,
+    required: false,
+  },
   description: {
     type: String,
     required: true,
     trim: true,
   },
+  amenities: [{
+    type: String,
+    trim: true,
+  }],
+  images: [{
+    type: String, // file paths or URLs
+  }],
   builderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

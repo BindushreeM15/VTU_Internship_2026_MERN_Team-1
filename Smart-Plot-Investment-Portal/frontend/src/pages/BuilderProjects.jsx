@@ -5,6 +5,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import api from "../utils/api";
+import MapComponent from "../components/MapComponent";
 
 // ── Delete Confirmation Modal ────────────────────────────────────────────────
 function DeleteModal({ project, onConfirm, onCancel }) {
@@ -55,7 +56,11 @@ export default function BuilderProjects() {
     const [form, setForm] = useState({
         projectName: "",
         location: "",
+        latitude: "",
+        longitude: "",
         description: "",
+        amenities: "",
+        images: [],
     });
     const [editingId, setEditingId] = useState(null);
 
@@ -79,14 +84,36 @@ export default function BuilderProjects() {
         fetchProjects();
     }, []);
 
-    const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+    const handleChange = (e) => {
+        const { name, value, files } = e.target;
+        if (name === 'images') {
+            setForm({ ...form, images: Array.from(files) });
+        } else {
+            setForm({ ...form, [name]: value });
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.projectName.trim() || !form.location.trim() || !form.description.trim()) return;
+
+        const formData = new FormData();
+        formData.append('projectName', form.projectName);
+        formData.append('location', form.location);
+        formData.append('latitude', form.latitude);
+        formData.append('longitude', form.longitude);
+        formData.append('description', form.description);
+        formData.append('amenities', JSON.stringify(form.amenities.split(',').map(a => a.trim()).filter(a => a)));
+
+        form.images.forEach(image => {
+            formData.append('images', image);
+        });
+
         try {
-            await api.post("/api/projects/create", form);
-            setForm({ projectName: "", location: "", description: "" });
+            await api.post("/api/projects/create", formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setForm({ projectName: "", location: "", latitude: "", longitude: "", description: "", amenities: "", images: [] });
             fetchProjects();
         } catch (err) {
             setError(err.response?.data?.error || "Failed to create project");
@@ -112,24 +139,41 @@ export default function BuilderProjects() {
         setForm({
             projectName: project.projectName,
             location: project.location,
+            latitude: project.latitude || "",
+            longitude: project.longitude || "",
             description: project.description,
+            amenities: project.amenities ? project.amenities.join(', ') : "",
+            images: [],
         });
     };
 
     const cancelEdit = () => {
         setEditingId(null);
-        setForm({ projectName: "", location: "", description: "" });
+        setForm({ projectName: "", location: "", latitude: "", longitude: "", description: "", amenities: "", images: [] });
     };
 
     const handleUpdate = async () => {
         if (!editingId) return;
+
+        const formData = new FormData();
+        formData.append('projectId', editingId);
+        formData.append('projectName', form.projectName);
+        formData.append('location', form.location);
+        formData.append('latitude', form.latitude);
+        formData.append('longitude', form.longitude);
+        formData.append('description', form.description);
+        formData.append('amenities', JSON.stringify(form.amenities.split(',').map(a => a.trim()).filter(a => a)));
+
+        form.images.forEach(image => {
+            formData.append('images', image);
+        });
+
         try {
-            await api.put("/api/projects/update-project", {
-                projectId: editingId,
-                ...form,
+            await api.put("/api/projects/update-project", formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             setEditingId(null);
-            setForm({ projectName: "", location: "", description: "" });
+            setForm({ projectName: "", location: "", latitude: "", longitude: "", description: "", amenities: "", images: [] });
             fetchProjects();
         } catch (err) {
             setError(err.response?.data?.error || "Failed to update project");
@@ -168,6 +212,56 @@ export default function BuilderProjects() {
                     <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
                         {project.description}
                     </p>
+
+                    {/* Project Images */}
+                    {project.images && project.images.length > 0 && (
+                        <div className="mt-3">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                                Project Images
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {project.images.slice(0, 4).map((image, index) => (
+                                    <div key={index} className="flex items-center justify-center p-2">
+                                        <img
+                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/${image}`}
+                                            alt={`Project ${index + 1}`}
+                                            className="w-60 h-40 object-cover rounded-md border"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Amenities */}
+                    {project.amenities && project.amenities.length > 0 && (
+                        <div className="mt-3">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                                Amenities
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                                {project.amenities.map((amenity, index) => (
+                                    <Badge key={index} variant="secondary" className="text-xs">
+                                        {amenity}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Map */}
+                    {project.latitude && project.longitude && (
+                        <div className="mt-3">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                                Location
+                            </p>
+                            <MapComponent
+                                latitude={project.latitude}
+                                longitude={project.longitude}
+                                projectName={project.projectName}
+                            />
+                        </div>
+                    )}
 
                     <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <Button
@@ -264,6 +358,61 @@ export default function BuilderProjects() {
                                         className="mt-1"
                                     />
                                 </div>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div>
+                                    <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                        Latitude
+                                    </label>
+                                    <Input
+                                        name="latitude"
+                                        type="number"
+                                        step="any"
+                                        value={form.latitude}
+                                        onChange={handleChange}
+                                        placeholder="e.g. 12.9716"
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                        Longitude
+                                    </label>
+                                    <Input
+                                        name="longitude"
+                                        type="number"
+                                        step="any"
+                                        value={form.longitude}
+                                        onChange={handleChange}
+                                        placeholder="e.g. 77.5946"
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                        Amenities
+                                    </label>
+                                    <Input
+                                        name="amenities"
+                                        value={form.amenities}
+                                        onChange={handleChange}
+                                        placeholder="park, water, security (comma separated)"
+                                        className="mt-1"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                    Project Images
+                                </label>
+                                <Input
+                                    name="images"
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleChange}
+                                    className="mt-1"
+                                />
                             </div>
                             <div className="flex items-center gap-3">
                                 <Button type="submit" disabled={isLoading} className="gap-2">

@@ -68,6 +68,8 @@ export default function BuilderPlots() {
         plotNumber: "",
         size: "",
         price: "",
+        facingDirection: "",
+        roadWidth: "",
     });
 
     const [editingPlot, setEditingPlot] = useState(null);
@@ -76,6 +78,8 @@ export default function BuilderPlots() {
         size: "",
         price: "",
         status: "",
+        facingDirection: "",
+        roadWidth: "",
     });
 
     // Plot pending deletion (drives modal)
@@ -133,8 +137,10 @@ export default function BuilderPlots() {
                 plotNumber: addForm.plotNumber,
                 size: addForm.size,
                 price: Number(addForm.price),
+                facingDirection: addForm.facingDirection,
+                roadWidth: addForm.roadWidth,
             });
-            setAddForm((prev) => ({ ...prev, plotNumber: "", size: "", price: "" }));
+            setAddForm((prev) => ({ ...prev, plotNumber: "", size: "", price: "", facingDirection: "", roadWidth: "" }));
             fetchPlots();
             setError(null);
         } catch (err) {
@@ -150,12 +156,14 @@ export default function BuilderPlots() {
             size: plot.size || "",
             price: plot.price || "",
             status: plot.status || "",
+            facingDirection: plot.facingDirection || "",
+            roadWidth: plot.roadWidth || "",
         });
     };
 
     const cancelEdit = () => {
         setEditingPlot(null);
-        setEditForm({ plotNumber: "", size: "", price: "", status: "" });
+        setEditForm({ plotNumber: "", size: "", price: "", status: "", facingDirection: "", roadWidth: "" });
     };
 
     const handleEditChange = (e) =>
@@ -171,6 +179,8 @@ export default function BuilderPlots() {
                 size: editForm.size,
                 price: Number(editForm.price),
                 status: editForm.status,
+                facingDirection: editForm.facingDirection,
+                roadWidth: editForm.roadWidth,
             });
             cancelEdit();
             fetchPlots();
@@ -234,6 +244,12 @@ export default function BuilderPlots() {
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                         Size: {plot.size}
+                        {plot.roadWidth ? (
+                            <span className="inline-block ml-4">Road: {plot.roadWidth}</span>
+                        ) : null}
+                        {plot.facingDirection ? (
+                            <span className="inline-block ml-4">Facing: {plot.facingDirection}</span>
+                        ) : null}
                     </p>
 
                     <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -364,6 +380,39 @@ export default function BuilderPlots() {
                                             placeholder="e.g. 150000"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                            Facing Direction
+                                        </label>
+                                        <select
+                                            name="facingDirection"
+                                            value={addForm.facingDirection}
+                                            onChange={handleAddChange}
+                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                        >
+                                            <option value="">Select direction</option>
+                                            <option value="north">North</option>
+                                            <option value="south">South</option>
+                                            <option value="east">East</option>
+                                            <option value="west">West</option>
+                                            <option value="northeast">Northeast</option>
+                                            <option value="northwest">Northwest</option>
+                                            <option value="southeast">Southeast</option>
+                                            <option value="southwest">Southwest</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                            Road Width
+                                        </label>
+                                        <input
+                                            name="roadWidth"
+                                            value={addForm.roadWidth}
+                                            onChange={handleAddChange}
+                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                            placeholder="e.g. 30 feet"
+                                        />
+                                    </div>
                                 </div>
                                 <Button
                                     onClick={handleAddPlot}
@@ -431,6 +480,39 @@ export default function BuilderPlots() {
                                             <option value="reserved">Reserved</option>
                                             <option value="sold">Sold</option>
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                            Facing Direction
+                                        </label>
+                                        <select
+                                            name="facingDirection"
+                                            value={editForm.facingDirection}
+                                            onChange={handleEditChange}
+                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                        >
+                                            <option value="">Select direction</option>
+                                            <option value="north">North</option>
+                                            <option value="south">South</option>
+                                            <option value="east">East</option>
+                                            <option value="west">West</option>
+                                            <option value="northeast">Northeast</option>
+                                            <option value="northwest">Northwest</option>
+                                            <option value="southeast">Southeast</option>
+                                            <option value="southwest">Southwest</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs tracking-wide uppercase text-muted-foreground font-medium">
+                                            Road Width
+                                        </label>
+                                        <input
+                                            name="roadWidth"
+                                            value={editForm.roadWidth}
+                                            onChange={handleEditChange}
+                                            className="mt-1 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                                            placeholder="e.g. 30 feet"
+                                        />
                                     </div>
                                 </div>
 
