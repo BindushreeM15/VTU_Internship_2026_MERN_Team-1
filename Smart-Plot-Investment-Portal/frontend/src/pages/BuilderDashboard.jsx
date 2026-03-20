@@ -60,11 +60,32 @@ export default function BuilderDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const token      = localStorage.getItem("token");
-  const payload    = parseJwt(token);
-  const kycStatus  = payload?.kycStatus   || "unsubmitted";
-  const companyName= payload?.companyName || "your company";
-  const isVerified = kycStatus === "verified";
+  // Re-read token from localStorage on every render AND when storage changes
+  // (BuilderKYC updates localStorage after admin approves — this picks it up)
+  const [tokenData, setTokenData] = useState(() => {
+    const t = localStorage.getItem("token");
+    return parseJwt(t) || {};
+  });
+
+  useEffect(() => {
+    const syncToken = () => {
+      const t = localStorage.getItem("token");
+      setTokenData(parseJwt(t) || {});
+    };
+    // Listen for storage changes from other tabs or from BuilderKYC polling
+    window.addEventListener("storage",     syncToken);
+    window.addEventListener("tokenUpdated", syncToken);
+    // Also re-sync on every location change (e.g. navigating back)
+    syncToken();
+    return () => {
+      window.removeEventListener("storage",     syncToken);
+      window.removeEventListener("tokenUpdated",syncToken);
+    };
+  }, [location]);
+
+  const kycStatus   = tokenData?.kycStatus   || "unsubmitted";
+  const companyName = tokenData?.companyName  || "your company";
+  const isVerified  = kycStatus === "verified";
 
   const [stats, setStats] = useState({ projects: 0, plots: 0, available: 0, blocked: 0, sold: 0 });
 

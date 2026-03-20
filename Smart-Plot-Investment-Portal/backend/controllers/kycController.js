@@ -102,3 +102,46 @@ exports.submitKYC = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+// ── GET /api/kyc/refresh-token ────────────────────────────────────────────────
+// Issues a fresh JWT with current kycStatus from DB.
+// Builder calls this after admin approves/rejects to update their token
+// without needing to log out and back in.
+exports.refreshToken = async (req, res) => {
+  try {
+    const jwt  = require("jsonwebtoken");
+    const user = await SnipUser.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const token = jwt.sign(
+      {
+        id:          user._id,
+        name:        user.name,
+        email:       user.email,
+        phone:       user.phone,
+        role:        user.role,
+        companyName: user.companyName,
+        kycStatus:   user.kycStatus,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    res.json({
+      token,
+      kycStatus: user.kycStatus,
+      user: {
+        id:          user._id,
+        name:        user.name,
+        email:       user.email,
+        phone:       user.phone,
+        role:        user.role,
+        companyName: user.companyName,
+        kycStatus:   user.kycStatus,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

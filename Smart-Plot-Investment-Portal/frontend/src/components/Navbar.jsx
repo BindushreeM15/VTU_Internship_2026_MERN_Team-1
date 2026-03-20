@@ -60,10 +60,29 @@ export default function Navbar() {
       : "light"
   );
 
-  const token   = localStorage.getItem("token");
-  const payload = token ? parseJwt(token) : null;
-  const role    = payload?.role      || null;
-  const name    = payload?.name      || "";
+  const [tokenData, setTokenData] = useState(() => {
+    const t = localStorage.getItem("token");
+    return t ? parseJwt(t) : null;
+  });
+
+  // Re-read token when localStorage changes (e.g. KYC approved, token refreshed)
+  useEffect(() => {
+    const syncToken = () => {
+      const t = localStorage.getItem("token");
+      setTokenData(t ? parseJwt(t) : null);
+    };
+    window.addEventListener("storage",      syncToken);
+    window.addEventListener("tokenUpdated",  syncToken);
+    return () => {
+      window.removeEventListener("storage",     syncToken);
+      window.removeEventListener("tokenUpdated",syncToken);
+    };
+  }, []);
+
+  const token        = localStorage.getItem("token");
+  const payload      = tokenData;
+  const role         = payload?.role      || null;
+  const name         = payload?.name      || "";
   const kycStatus    = payload?.kycStatus || null;
   const isVerified   = kycStatus === "verified";
 
@@ -118,7 +137,7 @@ export default function Navbar() {
                 <Building2 className="h-4 w-4 text-primary" />
               </div>
               <span className="navbar-logo text-lg">
-                Plot<span className="text-primary">Vest</span>
+                Smart<span className="text-primary">Plot</span>
               </span>
             </Link>
 
