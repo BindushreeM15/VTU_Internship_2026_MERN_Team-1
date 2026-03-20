@@ -1,37 +1,30 @@
-const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const { authenticate, authorize } = require('../middleware/auth');
+const express = require("express");
+const router  = express.Router();
+const { authenticate, authorize, requireKYCVerified } = require("../middleware/auth");
+const { uploadProjectDocs, uploadProjectImages } = require("../middleware/upload");
 const {
-    createProject,
-    getBuilderProjects,
-    addPlot,
-    updatePlot,
-    deletePlot,
-    updateProject,
-    deleteProject,
-    getAllBuildersPlots,
-} = require('../controllers/projectController');
+  createProject, getBuilderProjects, getProjectById,
+  updateProject, deleteProject, submitProjectForReview, deleteProjectImage,
+  addPlot, getProjectPlots, getAllBuilderPlots, updatePlot, deletePlot,
+} = require("../controllers/projectController");
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage });
+const builderOnly  = [authenticate, authorize("builder")];
+const verifiedOnly = [authenticate, authorize("builder"), requireKYCVerified];
 
-// Builder routes
-router.post('/create', authenticate, authorize('builder'), upload.array('images', 10), createProject);
-router.get('/my-projects', authenticate, authorize('builder'), getBuilderProjects);
-router.get('/all-plots', authenticate, authorize('builder'), getAllBuildersPlots);
-router.post('/add-plot', authenticate, authorize('builder'), addPlot);
-router.put('/update-plot', authenticate, authorize('builder'), updatePlot);
-router.put('/update-project', authenticate, authorize('builder'), upload.array('images', 10), updateProject);
-router.delete('/delete-plot', authenticate, authorize('builder'), deletePlot);
-router.delete('/delete-project', authenticate, authorize('builder'), deleteProject);
+// Projects
+router.post("/create",                ...verifiedOnly, uploadProjectImages, createProject);
+router.get("/my-projects",            ...builderOnly,  getBuilderProjects);
+router.get("/:projectId",             ...builderOnly,  getProjectById);
+router.put("/update",                 ...verifiedOnly, uploadProjectImages, updateProject);
+router.delete("/delete",              ...verifiedOnly, deleteProject);
+router.delete("/delete-project-image",...verifiedOnly, deleteProjectImage);
+router.post("/submit-for-review",     ...verifiedOnly, uploadProjectDocs, submitProjectForReview);
+
+// Plots — no image upload
+router.post("/plots/add",             ...verifiedOnly, addPlot);
+router.get("/plots/all",              ...builderOnly,  getAllBuilderPlots);
+router.get("/plots/:projectId",       ...builderOnly,  getProjectPlots);
+router.put("/plots/update",           ...verifiedOnly, updatePlot);
+router.delete("/plots/delete",        ...verifiedOnly, deletePlot);
 
 module.exports = router;

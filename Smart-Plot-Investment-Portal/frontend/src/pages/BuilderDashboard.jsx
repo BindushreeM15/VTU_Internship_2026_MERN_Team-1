@@ -1,216 +1,198 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Badge }  from "../components/ui/badge";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import {
-    ArrowRight,
-    Layers,
-    Grid,
-    Building,
-    MapPin,
-    CheckCircle,
+  Layers, Grid, AlertCircle, Clock, XCircle, ShieldCheck,
+  ChevronRight, FolderKanban, MapPin, CheckCircle2, Ban, TrendingUp,
 } from "lucide-react";
 import api from "../utils/api";
 
+const parseJwt = (token) => {
+  try {
+    const p = token.split(".")[1];
+    return p ? JSON.parse(atob(p.replace(/-/g, "+").replace(/_/g, "/"))) : null;
+  } catch { return null; }
+};
+
+function KYCBanner({ kycStatus, companyName, onVerifyClick }) {
+  if (kycStatus === "verified") return null;
+  const configs = {
+    unsubmitted:  { icon: AlertCircle, cls: "border-amber-300/40 bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-300", msg: `Verify ${companyName} to unlock all features.`, action: "Verify Now" },
+    under_review: { icon: Clock,       cls: "border-blue-300/40 bg-blue-50 text-blue-800 dark:bg-blue-950/20 dark:text-blue-300",  msg: "Company documents are under admin review.", action: "View Status" },
+    rejected:     { icon: XCircle,     cls: "border-red-300/40 bg-red-50 text-red-800 dark:bg-red-950/20 dark:text-red-300",    msg: "KYC was rejected. Resubmit corrected documents.", action: "Resubmit" },
+  };
+  const cfg  = configs[kycStatus];
+  if (!cfg) return null;
+  const Icon = cfg.icon;
+  return (
+    <div className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 ${cfg.cls}`}>
+      <div className="flex items-center gap-3">
+        <Icon className="h-4 w-4 shrink-0" />
+        <p className="text-sm font-medium">{cfg.msg}</p>
+      </div>
+      <Button size="sm" variant="outline" onClick={onVerifyClick} className="shrink-0 gap-1 text-xs border-current hover:bg-transparent">
+        {cfg.action} <ChevronRight className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, sub, color = "text-primary" }) {
+  return (
+    <div className="bg-card rounded-xl border border-border p-5 flex items-center gap-4">
+      <div className={`w-10 h-10 rounded-lg bg-primary/8 flex items-center justify-center ${color}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+        <p className="text-xs text-muted-foreground mt-1">{label}</p>
+        {sub && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function BuilderDashboard() {
-    const location = useLocation();
-    const navigate = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    const [stats, setStats] = useState({
-        totalProjects: 0,
-        totalPlots: 0,
-        availablePlots: 0,
-        reservedPlots: 0,
-        soldPlots: 0,
-    });
-    const [loading, setLoading] = useState(true);
+  const token      = localStorage.getItem("token");
+  const payload    = parseJwt(token);
+  const kycStatus  = payload?.kycStatus   || "unsubmitted";
+  const companyName= payload?.companyName || "your company";
+  const isVerified = kycStatus === "verified";
 
-    const activeTab = location.pathname.includes("plots")
-        ? "plots"
-        : "projects";
+  const [stats, setStats] = useState({ projects: 0, plots: 0, available: 0, blocked: 0, sold: 0 });
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
-
+  useEffect(() => {
+    if (!isVerified) return;
     const fetchStats = async () => {
-        try {
-            const [projectsRes, plotsRes] = await Promise.all([
-                api.get("/api/projects/my-projects"),
-                api.get("/api/projects/all-plots"),
-            ]);
-
-            const projects = projectsRes.data.projects || [];
-            const plots = plotsRes.data.plots || [];
-
-            const reservedPlots = plots.filter(
-                (plot) => plot.status === "reserved",
-            ).length;
-            const soldPlots = plots.filter(
-                (plot) => plot.status === "sold",
-            ).length;
-
-            setStats({
-                totalProjects: projects.length,
-                totalPlots: plots.length,
-                availablePlots: plots.filter(
-                    (plot) => plot.status === "available",
-                ).length,
-                reservedPlots,
-                soldPlots,
-            });
-        } catch (error) {
-            console.error("Failed to fetch stats", error);
-        } finally {
-            setLoading(false);
-        }
+      try {
+        const [projRes, plotsRes] = await Promise.all([
+          api.get("/api/projects/my-projects"),
+          api.get("/api/projects/plots/all"),
+        ]);
+        const plots = plotsRes.data.plots || [];
+        setStats({
+          projects:  projRes.data.projects?.length || 0,
+          plots:     plots.length,
+          available: plots.filter((p) => p.status === "available").length,
+          blocked:   plots.filter((p) => p.status === "blocked").length,
+          sold:      plots.filter((p) => p.status === "sold").length,
+        });
+      } catch (_) {}
     };
+    fetchStats();
+  }, [isVerified]);
 
-    return (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="display-font text-4xl font-bold text-foreground tracking-tight">
-                        Builder Hub
-                    </h1>
-                    <p className="text-muted-foreground mt-2 text-sm max-w-xl">
-                        Manage your projects and plot listings from one place.
-                        Create a new project, update details, or work with plots
-                        all from here.
-                    </p>
-                </div>
-                <Button
-                    variant="secondary"
-                    className="uppercase text-xs tracking-wider"
-                    onClick={() => navigate("/dashboard/builder/projects")}
-                >
-                    <Grid className="h-4 w-4" />
-                    Projects
-                </Button>
-            </div>
+  const isOnPlots    = location.pathname.includes("plots");
+  const activeTab    = isOnPlots ? "plots" : "projects";
 
-            <Card className="border-border bg-card/70 backdrop-blur-sm shadow-sm shadow-primary/5">
-                <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <CardTitle className="text-xl">
-                                Builder Dashboard
-                            </CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                                Use the tabs below to switch between projects
-                                and plots.
-                            </p>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Stats Cards */}
-                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                        {[
-                            {
-                                label: "Total Projects",
-                                value: stats.totalProjects,
-                                icon: Building,
-                                color: "from-blue-500/20 to-blue-500/5 text-blue-500",
-                            },
-                            {
-                                label: "Total Plots",
-                                value: stats.totalPlots,
-                                icon: MapPin,
-                                color: "from-purple-500/20 to-purple-500/5 text-purple-500",
-                            },
-                            {
-                                label: "Available",
-                                value: stats.availablePlots,
-                                icon: CheckCircle,
-                                color: "from-green-500/20 to-green-500/5 text-green-500",
-                            },
-                            {
-                                label: "Reserved",
-                                value: stats.reservedPlots,
-                                icon: CheckCircle,
-                                color: "from-yellow-500/20 to-yellow-500/5 text-yellow-500",
-                            },
-                            {
-                                label: "Sold",
-                                value: stats.soldPlots,
-                                icon: CheckCircle,
-                                color: "from-red-500/20 to-red-500/5 text-red-500",
-                            },
-                        ].map((item, i) => (
-                            <Card
-                                key={i}
-                                className="group relative overflow-hidden border-border bg-card/60 backdrop-blur-sm 
-      hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                            >
-                                {/* Glow Background */}
-                                <div
-                                    className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-gradient-to-br ${item.color}`}
-                                />
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-                                {/* Shine Effect */}
-                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition">
-                                    <div className="absolute -left-1/2 top-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent rotate-12 animate-[shine_1.2s_ease]"></div>
-                                </div>
+      {/* KYC banner */}
+      <KYCBanner
+        kycStatus={kycStatus}
+        companyName={companyName}
+        onVerifyClick={() => navigate("/dashboard/builder/kyc")}
+      />
 
-                                <CardContent className="relative pt-6">
-                                    <div className="flex items-center gap-4">
-                                        <div
-                                            className={`rounded-xl p-3 bg-gradient-to-br ${item.color} shadow-inner`}
-                                        >
-                                            <item.icon className="h-5 w-5" />
-                                        </div>
-
-                                        <div>
-                                            <p className="text-3xl font-bold tracking-tight text-foreground">
-                                                {loading ? "..." : item.value}
-                                            </p>
-
-                                            <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-                                                {item.label}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                    <Tabs
-                        value={activeTab}
-                        onValueChange={(value) =>
-                            navigate(
-                                value === "projects"
-                                    ? "/dashboard/builder/projects"
-                                    : "/dashboard/builder/projects/plots",
-                            )
-                        }
-                    >
-                        <TabsList className="mb-4">
-                            <TabsTrigger value="projects" className="text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Layers className="h-4 w-4" />
-                                    Projects
-                                </div>
-                            </TabsTrigger>
-                            <TabsTrigger value="plots" className="text-sm">
-                                <div className="flex items-center gap-2">
-                                    <ArrowRight className="h-4 w-4" />
-                                    Plots
-                                </div>
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-
-                    <Outlet />
-                </CardContent>
-            </Card>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-1">Builder</p>
+          <h1 className="display-font text-3xl font-bold text-foreground">Builder Hub</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your projects and plot inventory.</p>
         </div>
-    );
+        {isVerified && (
+          <Badge className="gap-1.5 bg-green-500/10 text-green-700 border border-green-400/30 text-xs dark:text-green-400 dark:border-green-500/30">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {companyName} Verified
+          </Badge>
+        )}
+      </div>
+
+      {/* Stats grid */}
+      {isVerified && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StatCard icon={FolderKanban}  label="Total Projects" value={stats.projects} color="text-primary" />
+          <StatCard icon={MapPin}        label="Total Plots"    value={stats.plots}    color="text-primary" />
+          <StatCard icon={CheckCircle2}  label="Available"      value={stats.available} color="text-green-600 dark:text-green-400" />
+          <StatCard icon={Clock}         label="Reserved"       value={stats.blocked}   color="text-amber-600 dark:text-amber-400" />
+          <StatCard icon={TrendingUp}    label="Sold"           value={stats.sold}      color="text-blue-600 dark:text-blue-400" />
+        </div>
+      )}
+
+      {/* Main content card */}
+      <Card className="border-border shadow-sm">
+        <CardHeader className="pb-0">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">
+              {isVerified ? "Dashboard" : "Complete Verification"}
+            </CardTitle>
+            {isVerified && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => navigate("/dashboard/builder/projects")}
+              >
+                <Grid className="h-3.5 w-3.5" /> All Projects
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-4 space-y-5">
+          {!isVerified ? (
+            <Alert className="border-amber-300/40 bg-amber-50/50 dark:bg-amber-950/10">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-sm">
+                {kycStatus === "under_review"
+                  ? "Your verification is under review. You can access all features once approved."
+                  : "Complete company verification to create projects and manage plots."}
+                {kycStatus !== "under_review" && (
+                  <button
+                    onClick={() => navigate("/dashboard/builder/kyc")}
+                    className="ml-1.5 text-primary font-medium underline underline-offset-2"
+                  >
+                    Start verification →
+                  </button>
+                )}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              {/* Tabs */}
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) =>
+                  navigate(v === "projects"
+                    ? "/dashboard/builder/projects"
+                    : "/dashboard/builder/projects/plots")
+                }
+              >
+                <TabsList className="mb-2">
+                  <TabsTrigger value="projects" className="gap-2 text-sm">
+                    <Layers className="h-4 w-4" /> Projects
+                  </TabsTrigger>
+                  <TabsTrigger value="plots" className="gap-2 text-sm">
+                    <Grid className="h-4 w-4" /> Plots
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Outlet */}
+              <Outlet />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
