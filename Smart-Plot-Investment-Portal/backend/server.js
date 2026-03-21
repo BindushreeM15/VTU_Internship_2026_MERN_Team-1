@@ -4,7 +4,7 @@ dotenv.config();
 const express = require("express");
 const cors    = require("cors");
 
-const { connectAll }   = require("./config/db");
+const { connectAll, adminConn, snipConn } = require("./config/db");
 const authRoutes       = require("./routes/authRoutes");
 const builderRoutes    = require("./routes/builderRoutes");
 const projectRoutes    = require("./routes/projectRoutes");
@@ -26,19 +26,26 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ── DB connection ─────────────────────────────────────────────────────────────
-// Use a single shared promise so concurrent requests on a cold start all wait
-// for the SAME connection attempt — no duplicate listeners, no race condition.
+// ── DB connection middleware ───────────────────────────────────────────────────
+// readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+// We reconnect if either connection is not in state 1 or 2.
 let dbPromise = null;
 
 const ensureDB = () => {
-  if (!dbPromise) {
-    dbPromise = connectAll().catch((err) => {
-      // Reset so the next request can retry
-      dbPromise = null;
-      throw err;
-    });
+  const adminReady = adminConn.readyState === 1 || adminConn.readyState === 2;
+  const snipReady  = snipConn.readyState  === 1 || snipConn.readyState  === 2;
+
+  // If both connections are alive, no need to reconnect
+  if (adminReady && snipReady && dbPromise) {
+    return dbPromise;
   }
+
+  // Otherwise reset and reconnect
+  dbPromise = connectAll().catch((err) => {
+    dbPromise = null; // allow retry on next request
+    throw err;
+  });
+
   return dbPromise;
 };
 
@@ -61,17 +68,23 @@ app.use("/api/admin",     adminRoutes);
 app.use("/api/public",    publicRoutes);
 app.use("/api/interests", interestRoutes);
 
-// ── Health / test ─────────────────────────────────────────────────────────────
+// ── Health ────────────────────────────────────────────────────────────────────
 app.get("/api/protected", authenticate, (req, res) => {
   res.json({ message: "Protected", user: req.user });
 });
 
 app.get("/", (req, res) => {
-  res.send("Smart Plot Investment Portal API Running");
+  res.json({
+    status: "ok",
+    message: "Smart Plot Investment Portal API Running",
+    db: {
+      admin: adminConn.readyState === 1 ? "connected" : "disconnected",
+      snip:  snipConn.readyState  === 1 ? "connected" : "disconnected",
+    },
+  });
 });
 
-// ── Local dev: connect first, then listen ─────────────────────────────────────
-// Vercel serverless ignores this block entirely (module.exports = app handles it)
+// ── Local dev only ────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 5000;
   ensureDB()
@@ -79,5 +92,4 @@ if (process.env.NODE_ENV !== "production") {
     .catch((err) => { console.error("Failed to start:", err); process.exit(1); });
 }
 
-// ── Export for Vercel ─────────────────────────────────────────────────────────
 module.exports = app;
