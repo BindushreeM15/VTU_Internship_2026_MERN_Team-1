@@ -130,3 +130,24 @@ exports.deactivateProject = async (req, res) => {
     res.json({ message: `"${project.projectName}" deactivated`, projectStatus: "inactive" });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
+
+
+exports.AllProjects = async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate("builderId", "name companyName") // only needed fields
+      .select("projectName location projectStatus builderId"); // only required fields
+
+    // Transform response (clean output)
+    const formattedProjects = projects.map(p => ({
+      projectName: p.projectName,
+      builderName: p.builderId?.companyName || p.builderId?.name,
+      location: p.location,
+      status: p.projectStatus
+    }));
+
+    res.json({ projects: formattedProjects });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
