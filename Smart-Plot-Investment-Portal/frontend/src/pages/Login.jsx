@@ -102,6 +102,12 @@ export default function Login() {
               Create one
             </Link>
           </p>
+
+          <p className="text-sm text-right mt-2">
+  <a href="/forgot-password" className="text-blue-600">
+    Forgot Password?
+  </a>
+</p>
         </div>
 
         <p className="text-center text-xs text-muted-foreground uppercase tracking-widest mt-6">

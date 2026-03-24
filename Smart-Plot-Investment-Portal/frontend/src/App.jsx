@@ -16,7 +16,9 @@ import SavedProjects   from './pages/SavedProjects';
 import ProtectedRoute  from './components/ProtectedRoute';
 import './index.css';
 import { Toaster } from 'sonner';
-
+import ForgotPassword from "./pages/ForgotPassword";
+import VerifyOtp from "./pages/VerifyOtp";
+import ResetPassword from "./pages/ResetPassword";
 function App() {
   return (
     <div className="min-h-screen bg-background">
@@ -27,6 +29,10 @@ function App() {
           <Route path="/"        element={<Home />} />
           <Route path="/signup"  element={<Signup />} />
           <Route path="/login"   element={<Login />} />
+
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* All projects listing page */}
           <Route path="/projects" element={<AllProjects />} />
@@ -52,6 +58,7 @@ function App() {
             path="/dashboard/builder/*"
             element={<ProtectedRoute allowedRoles={["builder"]}><BuilderDashboard /></ProtectedRoute>}
           >
+
             <Route index element={<Navigate to="projects" replace />} />
             <Route path="projects"       element={<BuilderProjects />} />
             <Route path="projects/plots" element={<BuilderPlots />} />

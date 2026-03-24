@@ -26,7 +26,13 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String, required: true, enum: ["investor", "builder", "admin"],
   },
+  otp: {
+  type: String,
+},
 
+  otpExpires: {
+  type: Date,
+},
   // ── Builder-only fields ───────────────────────────────────────────────────
   companyName: {
     type: String, trim: true,

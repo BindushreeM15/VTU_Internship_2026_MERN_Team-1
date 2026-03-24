@@ -1,6 +1,7 @@
 const { AdminUser, SnipUser } = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt    = require("jsonwebtoken");
+const sendEmail = require("../utils/sendEmail");
 
 const getUserModel = (role) => (role === "admin" ? AdminUser : SnipUser);
 
@@ -91,6 +92,81 @@ exports.updateProfile = async (req, res) => {
       message: "Profile updated successfully",
       user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, companyName: user.companyName, kycStatus: user.kycStatus },
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ── Password reset request ─────────────────────────────────────────────────
+exports.sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Search both models since you have a split user system
+    let user = await SnipUser.findOne({ email });
+    if (!user) user = await AdminUser.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 min
+
+    await user.save();
+
+    // Ensure your utils/sendEmail.js is using the Google App Password!
+    await sendEmail(email, "Password Reset OTP", `Your OTP is ${otp}`);
+
+    res.json({ message: "OTP sent to email" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ── Verify OTP ─────────────────────────────────────────────────────────────
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    let user = await SnipUser.findOne({ email });
+    if (!user) user = await AdminUser.findOne({ email });
+
+    if (!user || user.otp !== otp) {
+      return res.status(400).json({ error: "Invalid OTP" });
+    }
+
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ error: "OTP expired" });
+    }
+
+    res.json({ message: "OTP verified" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ── Reset Password ──────────────────────────────────────────────────────────
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    let user = await SnipUser.findOne({ email });
+    if (!user) user = await AdminUser.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.otp = null;
+    user.otpExpires = null;
+
+    await user.save();
+    res.json({ message: "Password reset successful" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
