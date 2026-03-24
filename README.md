@@ -1,4 +1,4 @@
-# 🏡 Smart Plot Investment Portal (SPIP)
+# 🏡 Smart Plot Investment Platform (SPIP)
 
 A full-stack MERN application for real estate investment with **KYC verification, role-based access, and secure project approval workflows**.
 
