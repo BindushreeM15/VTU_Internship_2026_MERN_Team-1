@@ -6,8 +6,8 @@ A full-stack MERN application for real estate investment with **KYC verification
 
 ## 🌐 Live Demo
 
-- 🔗 Frontend: https://spip-frontend-v2.vercel.app  
-- 🔗 Backend: https://spip-backend-v2.vercel.app  
+- 🔗 Frontend: "https://smart-plot-investment-frontend.vercel.app",
+- 🔗 Backend: "https://smart-plot-investment-backend.vercel.app",
 
 ---
 

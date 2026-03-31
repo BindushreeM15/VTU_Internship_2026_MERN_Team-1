@@ -18,11 +18,13 @@ const app = express();
 
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || "https://spip-frontend-v2.vercel.app",
+    process.env.FRONTEND_URL || "https://smart-plot-investment-frontend.vercel.app",
     "http://localhost:5173",
     "http://localhost:5174",
   ],
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(express.json());
 
