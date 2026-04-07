@@ -1,28 +1,25 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false,
+  service: "gmail", // ✅ use Gmail service
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.SMTP_USER, // your gmail
+    pass: process.env.SMTP_PASS, // app password (NOT your real password)
   },
 });
 
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, html) => {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: `"Smart Plot" <${process.env.SMTP_USER}>`,
       to,
       subject,
-      text,
+      html,
     });
 
-    console.log("Email sent successfully");
-
+    console.log("✅ Email sent successfully");
   } catch (error) {
-    console.error("Email sending failed:", error);
+    console.error("❌ Email sending failed:", error);
     throw error;
   }
 };

@@ -96,6 +96,13 @@ export default function Login() {
 
           <Separator />
 
+          <p className="text-right text-xs text-muted-foreground">
+            Don't remember password?{" "}
+            <Link to="/forgot-password" className="font-semibold text-primary hover:underline underline-offset-2">
+              Forgot Password
+            </Link>
+          </p>
+
           <p className="text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
             <Link to="/signup" className="font-semibold text-primary hover:underline underline-offset-2">
@@ -103,11 +110,6 @@ export default function Login() {
             </Link>
           </p>
 
-          <p className="text-sm text-right mt-2">
-  <a href="/forgot-password" className="text-blue-600">
-    Forgot Password?
-  </a>
-</p>
         </div>
 
         <p className="text-center text-xs text-muted-foreground uppercase tracking-widest mt-6">

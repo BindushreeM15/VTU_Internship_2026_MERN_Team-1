@@ -1,56 +1,67 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setMessage("");
+    setError("");
 
     try {
-      await api.post("/api/auth/send-otp", { email });
-
-      setMessage("OTP sent to your email");
-      setError("");
-
-      navigate("/verify-otp", { state: { email } });
-
+      await api.post("/api/auth/send-reset-link", { email });
+      setMessage("Reset link sent to your email");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to send OTP");
-      setMessage("");
+      setError(err.response?.data?.error || "Failed to send reset link");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Forgot Password</h2>
+    <div className="flex items-center justify-center min-h-screen">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Forgot Password</CardTitle>
+        </CardHeader>
 
-        {message && <p className="text-green-600 text-sm">{message}</p>}
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <CardContent>
+          {message && <p className="text-green-600 text-sm mb-2">{message}</p>}
+          {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Enter registered email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full border p-2 rounded"
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={isLoading}
+            />
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded"
-          >
-            Send OTP
-          </button>
-        </form>
-      </div>
+            <Button className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending…
+                </>
+              ) : (
+                "Send Reset Link"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
