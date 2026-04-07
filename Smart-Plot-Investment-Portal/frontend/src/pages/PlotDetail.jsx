@@ -4,9 +4,10 @@ import api from "../utils/api";
 import { toast } from "sonner";
 import {
   ArrowLeft, MapPin, ExternalLink, Loader2,
-  ChevronLeft, ChevronRight, Compass, Ruler,
+  ChevronLeft, ChevronRight, Compass, Ruler, Lock,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import BlockPlotModal from "../components/BlockPlotModal";
 
 const formatPrice = (p) => {
   if (!p && p !== 0) return "—";
@@ -113,6 +114,7 @@ export default function PlotDetail() {
   const [plot,      setPlot]      = useState(null);
   const [project,   setProject]   = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showBlockModal, setShowBlockModal] = useState(false);
 
   useEffect(() => {
     api.get(`/api/public/projects/${projectId}/plots/${plotId}`)
@@ -204,6 +206,11 @@ export default function PlotDetail() {
 
           {/* Actions */}
           <div className="flex gap-3 flex-wrap">
+            {plot.status === "available" && (
+              <Button onClick={() => setShowBlockModal(true)} className="gap-2">
+                <Lock className="h-4 w-4" /> Block Plot
+              </Button>
+            )}
             {plot.locationLink && (
               <Button asChild variant="outline" className="gap-2">
                 <a href={plot.locationLink} target="_blank" rel="noreferrer">
@@ -217,6 +224,20 @@ export default function PlotDetail() {
           </div>
         </div>
       </div>
+
+      {/* Block Plot Modal */}
+      {showBlockModal && (
+        <BlockPlotModal
+          plot={plot}
+          onClose={() => setShowBlockModal(false)}
+          onSuccess={(booking) => {
+            toast.success("Plot blocked successfully! Booking expires in 30 days.");
+            setShowBlockModal(false);
+            // Refresh plot status
+            setPlot(prev => ({ ...prev, status: "reserved" }));
+          }}
+        />
+      )}
     </div>
   );
 }

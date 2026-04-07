@@ -13,6 +13,8 @@ const adminRoutes      = require("./routes/adminRoutes");
 const publicRoutes     = require("./routes/publicRoutes");
 const interestRoutes   = require("./routes/interestRoutes");
 const { authenticate } = require("./middleware/auth");
+const bookingRoutes = require("./routes/bookingRoutes");
+
 
 const app = express();
 
@@ -67,6 +69,7 @@ app.use("/api/kyc",       kycRoutes);
 app.use("/api/admin",     adminRoutes);
 app.use("/api/public",    publicRoutes);
 app.use("/api/interests", interestRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get("/api/protected", authenticate, (req, res) => {
