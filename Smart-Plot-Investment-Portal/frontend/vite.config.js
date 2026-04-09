@@ -6,11 +6,14 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
-    // Proxy API calls to backend during local dev
-    // This way you don't need VITE_API_URL for local dev
+    // Proxy API and uploaded assets to backend during local dev
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:5001',
         changeOrigin: true,
       },
     },

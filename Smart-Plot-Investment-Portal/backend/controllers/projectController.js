@@ -1,6 +1,10 @@
 const Project  = require("../models/Project");
 const Plot     = require("../models/Plot");
 const cloudinary = require("../config/cloudinary");
+const mongoose = require("mongoose");
+const fs = require("fs").promises;
+const path = require("path");
+const uploadsDir = path.join(__dirname, "../uploads");
 
 const PROJECT_DOC_LABELS = {
   reraCertificate:        "RERA Certificate",
@@ -34,8 +38,8 @@ exports.createProject = async (req, res) => {
       builderId,
       projectStatus: "draft",
       kathaType:     kathaType || null,
-      sketchImage:   sketchFile ? { url: sketchFile.path, publicId: sketchFile.filename } : null,
-      projectImages: imageFiles.map((f) => ({ url: f.path, publicId: f.filename })),
+      sketchImage:   sketchFile ? { url: "/uploads/" + sketchFile.filename, publicId: sketchFile.filename } : null,
+      projectImages: imageFiles.map((f) => ({ url: "/uploads/" + f.filename, publicId: f.filename })),
     });
 
     await project.save();
@@ -116,16 +120,19 @@ exports.updateProject = async (req, res) => {
 
     if (newSketch) {
       if (project.sketchImage?.publicId) {
-        try { await cloudinary.uploader.destroy(project.sketchImage.publicId); } catch (_) {}
+        try {
+          const filePath = path.join(uploadsDir, project.sketchImage.publicId);
+          await fs.unlink(filePath);
+        } catch (_) {}
       }
-      project.sketchImage = { url: newSketch.path, publicId: newSketch.filename };
+      project.sketchImage = { url: "/uploads/" + newSketch.filename, publicId: newSketch.filename };
     }
     if (newImages.length) {
       const current = project.projectImages?.length || 0;
       if (current + newImages.length > 5) {
         return res.status(400).json({ error: "Maximum 5 project images allowed" });
       }
-      project.projectImages.push(...newImages.map((f) => ({ url: f.path, publicId: f.filename })));
+      project.projectImages.push(...newImages.map((f) => ({ url: "/uploads/" + f.filename, publicId: f.filename })));
     }
 
     await project.save();
@@ -152,18 +159,30 @@ exports.deleteProject = async (req, res) => {
       return res.status(400).json({ error: "Cannot delete a completed project" });
     }
 
-    // Clean Cloudinary
+    // Clean local files
     for (const doc of project.projectDocuments || []) {
-      try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: "raw" }); } catch (_) {}
+      try {
+        const filePath = path.join(uploadsDir, doc.publicId);
+        await fs.unlink(filePath);
+      } catch (_) {}
     }
     if (project.sketchImage?.publicId) {
-      try { await cloudinary.uploader.destroy(project.sketchImage.publicId); } catch (_) {}
+      try {
+        const filePath = path.join(uploadsDir, project.sketchImage.publicId);
+        await fs.unlink(filePath);
+      } catch (_) {}
     }
     for (const img of project.projectImages || []) {
-      try { await cloudinary.uploader.destroy(img.publicId); } catch (_) {}
+      try {
+        const filePath = path.join(uploadsDir, img.publicId);
+        await fs.unlink(filePath);
+      } catch (_) {}
     }
     if (project.kathaDocument?.publicId) {
-      try { await cloudinary.uploader.destroy(project.kathaDocument.publicId, { resource_type: "raw" }); } catch (_) {}
+      try {
+        const filePath = path.join(uploadsDir, project.kathaDocument.publicId);
+        await fs.unlink(filePath);
+      } catch (_) {}
     }
 
     await Plot.deleteMany({ projectId });
@@ -178,9 +197,13 @@ exports.deleteProject = async (req, res) => {
 exports.deleteProjectImage = async (req, res) => {
   try {
     const { projectId, publicId, type } = req.body;
-    const project = await Project.findOne({ _id: projectId, builderId: req.user.id });
+    const builderId = req.user.id;
+    const project = await Project.findOne({ _id: projectId, builderId });
     if (!project) return res.status(404).json({ error: "Project not found" });
-    try { await cloudinary.uploader.destroy(publicId); } catch (_) {}
+    try {
+      const filePath = path.join(uploadsDir, publicId);
+      await fs.unlink(filePath);
+    } catch (_) {}
     if (type === "sketch") project.sketchImage = null;
     else project.projectImages = project.projectImages.filter((i) => i.publicId !== publicId);
     await project.save();
@@ -196,56 +219,91 @@ exports.submitProjectForReview = async (req, res) => {
     const { projectId, kathaType } = req.body;
     const builderId = req.user.id;
 
-    if (!projectId) return res.status(400).json({ error: "Project ID is required" });
+    // 1. Validate Project ID format to prevent CastError (500)
+    if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ error: "A valid Project ID is required" });
+    }
+
     if (!kathaType) return res.status(400).json({ error: "Katha type is required" });
 
     const project = await Project.findOne({ _id: projectId, builderId });
     if (!project) return res.status(404).json({ error: "Project not found" });
 
+    // 2. Status Checks
     if (project.projectStatus === "under_review") return res.status(400).json({ error: "Already under review" });
-    if (["verified","active"].includes(project.projectStatus)) return res.status(400).json({ error: "Already verified" });
-    if (!["draft","rejected"].includes(project.projectStatus)) return res.status(400).json({ error: `Cannot submit with status "${project.projectStatus}"` });
+    if (["verified", "active"].includes(project.projectStatus)) return res.status(400).json({ error: "Already verified" });
 
-    const uploadedFiles  = req.files || {};
+    const uploadedFiles = req.files || {};
+    
+    // 3. Document Validation Logic
     const submittedTypes = Object.keys(uploadedFiles).filter((k) => REQUIRED_PROJECT_DOCS.includes(k));
-    const missingDocs    = REQUIRED_PROJECT_DOCS.filter((d) => !submittedTypes.includes(d));
+    const missingDocs = REQUIRED_PROJECT_DOCS.filter((d) => !submittedTypes.includes(d));
 
     if (missingDocs.length > 0) {
+      // Cleanup uploaded files if the set is incomplete
       for (const t of submittedTypes) {
-        const f = uploadedFiles[t]?.[0];
-        if (f?.filename) try { await cloudinary.uploader.destroy(f.filename, { resource_type: "raw" }); } catch (_) {}
+        const file = uploadedFiles[t]?.[0];
+        if (file?.filename) {
+          // Try to delete as raw (PDFs) and then as image (JPG/PNG)
+          try { await cloudinary.uploader.destroy(file.filename, { resource_type: "raw" }); } catch (_) {}
+          try { await cloudinary.uploader.destroy(file.filename); } catch (_) {}
+        }
       }
       return res.status(400).json({ error: `Missing: ${missingDocs.map((d) => PROJECT_DOC_LABELS[d]).join(", ")}` });
     }
 
-    // Delete old docs
+    // 4. Delete old project documents from local storage before replacing
+    const fs = require("fs").promises;
+    const path = require("path");
+    const uploadsDir = path.join(__dirname, "../uploads");
+    
     for (const doc of project.projectDocuments || []) {
-      try { await cloudinary.uploader.destroy(doc.publicId, { resource_type: "raw" }); } catch (_) {}
+      try {
+        const filePath = path.join(uploadsDir, doc.publicId);
+        await fs.unlink(filePath);
+      } catch (_) {}
     }
 
-    // Katha doc (optional)
+    // 5. Handle Katha Document (Optional)
     const kathaFile = uploadedFiles?.kathaDocument?.[0];
     if (kathaFile) {
-      if (project.kathaDocument?.publicId) {
-        try { await cloudinary.uploader.destroy(project.kathaDocument.publicId, { resource_type: "raw" }); } catch (_) {}
+      if (!kathaFile.path || !kathaFile.filename) {
+        throw new Error("Katha document upload failed. Please check your internet connection and try again.");
       }
-      project.kathaDocument = { url: kathaFile.path, publicId: kathaFile.filename };
+      if (project.kathaDocument?.publicId) {
+        try {
+          const filePath = path.join(uploadsDir, project.kathaDocument.publicId);
+          await fs.unlink(filePath);
+        } catch (_) {}
+      }
+      project.kathaDocument = { url: "/uploads/" + kathaFile.filename, publicId: kathaFile.filename };
     }
 
-    project.kathaType        = kathaType;
+    // 6. Map and Save
+    project.kathaType = kathaType;
     project.projectDocuments = submittedTypes.map((docType) => {
       const f = uploadedFiles[docType][0];
-      return { docType, label: PROJECT_DOC_LABELS[docType], fileUrl: f.path, publicId: f.filename };
+      if (!f || !f.path || !f.filename) {
+        throw new Error(`File upload failed for ${docType}. Please check your internet connection and try again.`);
+      }
+      return { 
+        docType, 
+        label: PROJECT_DOC_LABELS[docType], 
+        fileUrl: "/uploads/" + f.filename, 
+        publicId: f.filename 
+      };
     });
-    project.projectStatus          = "under_review";
+
+    project.projectStatus = "under_review";
     project.projectRejectionReason = null;
-    project.projectSubmittedAt     = new Date();
-    project.projectVerifiedAt      = null;
+    project.projectSubmittedAt = new Date();
 
     await project.save();
-    res.json({ message: "Project submitted for review", project });
+    res.json({ message: "Project submitted for review successfully!", project });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("SUBMISSION_ERROR:", error); // Logs to your terminal
+    res.status(500).json({ error: "Server error: " + error.message });
   }
 };
 

@@ -109,25 +109,42 @@ function SubmitReviewModal({ project, onClose, onSuccess }) {
   const allDocsUploaded = PROJECT_DOCS.every((d) => files[d.key]);
 
   const handleSubmit = async () => {
-    if (!allDocsUploaded) { toast.error("All 5 documents are required"); return; }
-    if (!kathaType)        { toast.error("Katha type is required"); return; }
-    setSubmitting(true);
-    const fd = new FormData();
-    fd.append("projectId", project._id);
-    fd.append("kathaType", kathaType);
-    if (kathaDoc) fd.append("kathaDocument", kathaDoc);
-    Object.entries(files).forEach(([k, v]) => fd.append(k, v));
-    try {
-      await api.post("/api/projects/submit-for-review", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      toast.success("Project submitted for review!");
-      onSuccess();
-      onClose();
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Submission failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  if (!allDocsUploaded) { toast.error("All 5 documents are required"); return; }
+  if (!kathaType)        { toast.error("Katha type is required"); return; }
+  
+  setSubmitting(true);
+  const fd = new FormData();
+
+  // 1. Explicitly stringify the ID to ensure it's sent correctly
+  fd.append("projectId", project._id.toString());
+  fd.append("kathaType", kathaType);
+  
+  // 2. Only append kathaDoc if the user actually selected a file
+  if (kathaDoc instanceof File) {
+    fd.append("kathaDocument", kathaDoc);
+  }
+
+  // 3. Append required docs
+  Object.entries(files).forEach(([k, v]) => {
+    if (v) fd.append(k, v);
+  });
+
+  try {
+    await api.post("/api/projects/submit-for-review", fd, { 
+      headers: { "Content-Type": "multipart/form-data" } 
+    });
+    toast.success("Project submitted for review!");
+    onSuccess();
+    onClose();
+  } catch (err) {
+    // 4. Enhanced error reporting
+    const errorMsg = err.response?.data?.error || "Submission failed. Please check your connection.";
+    toast.error(errorMsg);
+    console.error("Upload Error:", err.response?.data);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

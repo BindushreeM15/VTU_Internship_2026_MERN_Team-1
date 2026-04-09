@@ -13,6 +13,7 @@ import AllProjects     from './pages/AllProjects';
 import ProjectDetail   from './pages/ProjectDetail';
 import PlotDetail      from './pages/PlotDetail';
 import SavedProjects   from './pages/SavedProjects';
+import MyBookings     from './pages/MyBookings';
 import ProtectedRoute  from './components/ProtectedRoute';
 import './index.css';
 import { Toaster } from 'sonner';
@@ -47,6 +48,9 @@ function App() {
           />
           <Route path="/saved-projects"
             element={<ProtectedRoute allowedRoles={["investor"]}><SavedProjects /></ProtectedRoute>}
+          />
+          <Route path="/my-bookings"
+            element={<ProtectedRoute allowedRoles={["investor"]}><MyBookings /></ProtectedRoute>}
           />
           <Route path="/dashboard/admin"
             element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>}

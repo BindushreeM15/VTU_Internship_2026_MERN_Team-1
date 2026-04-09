@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import {
   Layers, Grid, AlertCircle, Clock, XCircle, ShieldCheck,
   ChevronRight, FolderKanban, MapPin, CheckCircle2, Ban, TrendingUp,
+  RefreshCw,
 } from "lucide-react";
 import api from "../utils/api";
 
@@ -89,29 +90,37 @@ export default function BuilderDashboard() {
 
   const [stats, setStats] = useState({ projects: 0, plots: 0, available: 0, blocked: 0, sold: 0 });
 
-  useEffect(() => {
+  const fetchStats = async () => {
     if (!isVerified) return;
-    const fetchStats = async () => {
-      try {
-        const [projRes, plotsRes] = await Promise.all([
-          api.get("/api/projects/my-projects"),
-          api.get("/api/projects/plots/all"),
-        ]);
-        const plots = plotsRes.data.plots || [];
-        setStats({
-          projects:  projRes.data.projects?.length || 0,
-          plots:     plots.length,
-          available: plots.filter((p) => p.status === "available").length,
-          blocked:   plots.filter((p) => p.status === "blocked").length,
-          sold:      plots.filter((p) => p.status === "sold").length,
-        });
-      } catch (_) {}
-    };
+    try {
+      const [projRes, plotsRes] = await Promise.all([
+        api.get("/api/projects/my-projects"),
+        api.get("/api/projects/plots/all"),
+      ]);
+      const plots = plotsRes.data.plots || [];
+      setStats({
+        projects:  projRes.data.projects?.length || 0,
+        plots:     plots.length,
+        available: plots.filter((p) => p.status === "available").length,
+        blocked:   plots.filter((p) => p.status === "reserved").length,
+        sold:      plots.filter((p) => p.status === "sold").length,
+      });
+    } catch (_) {}
+  };
+
+  useEffect(() => {
     fetchStats();
   }, [isVerified]);
 
+  // Refresh stats when navigating to dashboard
   const isOnPlots    = location.pathname.includes("plots");
   const activeTab    = isOnPlots ? "plots" : "projects";
+
+  useEffect(() => {
+    if (!isOnPlots) { // When on dashboard (not plots page)
+      fetchStats();
+    }
+  }, [isOnPlots]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -157,14 +166,24 @@ export default function BuilderDashboard() {
               {isVerified ? "Dashboard" : "Complete Verification"}
             </CardTitle>
             {isVerified && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                onClick={() => navigate("/dashboard/builder/projects")}
-              >
-                <Grid className="h-3.5 w-3.5" /> All Projects
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={fetchStats}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => navigate("/dashboard/builder/projects")}
+                >
+                  <Grid className="h-3.5 w-3.5" /> All Projects
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>

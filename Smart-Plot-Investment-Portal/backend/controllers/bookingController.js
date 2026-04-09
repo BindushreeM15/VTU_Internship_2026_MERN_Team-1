@@ -42,8 +42,11 @@ const blockPlot = async (req, res) => {
       });
     }
 
-    // Set expiry to 30 days from now
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const isFullPayment = Number(tokenAmount) === Number(plot.price);
+    const expiresAt = isFullPayment
+      ? new Date()
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const status = isFullPayment ? "confirmed" : "reserved";
 
     // Create booking
     const booking = await Booking.create({
@@ -51,16 +54,16 @@ const blockPlot = async (req, res) => {
       projectId: plot.projectId,
       userId,
       tokenAmount,
-      status: "reserved",
+      status,
       expiresAt,
     });
 
-    // Update plot status to reserved
-    plot.status = "reserved";
+    // Update plot status
+    plot.status = isFullPayment ? "sold" : "reserved";
     await plot.save();
 
     return res.status(201).json({
-      message: "Plot blocked successfully",
+      message: isFullPayment ? "Plot confirmed with full payment" : "Plot blocked successfully",
       booking: {
         _id: booking._id,
         plotId: booking.plotId,
@@ -147,6 +150,66 @@ const cancelBooking = async (req, res) => {
   }
 };
 
+// PATCH /api/bookings/:bookingId/top-up  (investor pays additional amount toward a reserved booking)
+const topUpBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { topUpAmount } = req.body;
+    const userId = req.user.id;
+
+    if (!topUpAmount || Number(topUpAmount) <= 0) {
+      return res.status(400).json({ message: "topUpAmount must be greater than 0" });
+    }
+
+    const booking = await Booking.findOne({ _id: bookingId, userId });
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.status !== "reserved") {
+      return res.status(400).json({
+        message: `Top-up is only allowed for reserved bookings. Current status: ${booking.status}`,
+      });
+    }
+
+    if (new Date() > booking.expiresAt) {
+      booking.status = "expired";
+      await booking.save();
+      await Plot.findByIdAndUpdate(booking.plotId, { status: "available" });
+      return res.status(400).json({ message: "Booking has expired. Please block the plot again." });
+    }
+
+    const plot = await Plot.findById(booking.plotId);
+    if (!plot) {
+      return res.status(404).json({ message: "Associated plot not found" });
+    }
+
+    const newTotalPaid = Number(booking.tokenAmount) + Number(topUpAmount);
+    if (newTotalPaid > Number(plot.price)) {
+      return res.status(400).json({ message: "Top-up amount cannot exceed remaining balance." });
+    }
+
+    booking.tokenAmount = newTotalPaid;
+
+    if (newTotalPaid === Number(plot.price)) {
+      booking.status = "confirmed";
+      await Plot.findByIdAndUpdate(booking.plotId, { status: "sold" });
+    }
+
+    await booking.save();
+
+    return res.status(200).json({
+      message: newTotalPaid === Number(plot.price)
+        ? "Booking fully paid and confirmed"
+        : "Top-up successful. Booking remains reserved.",
+      booking,
+    });
+  } catch (error) {
+    console.error("Top-up booking error:", error);
+    return res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
 // PATCH /api/bookings/:bookingId/confirm  (investor confirms booking - final purchase)
 const confirmBooking = async (req, res) => {
   try {
@@ -208,4 +271,4 @@ const confirmBooking = async (req, res) => {
   }
 };
 
-module.exports = { blockPlot, getMyBookings, getBookingById, cancelBooking, confirmBooking };
+module.exports = { blockPlot, getMyBookings, getBookingById, cancelBooking, confirmBooking, topUpBooking };

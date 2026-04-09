@@ -2,9 +2,12 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   LogOut, Sun, Moon, Menu, X, LayoutDashboard,
   FolderKanban, MapPin, Users, Home, BookmarkCheck,
-  ChevronDown, ShieldCheck, Building2,
+  ChevronDown, ShieldCheck, Building2, Lock,
+  BookImageIcon,
+  BookIcon,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import MyBookings from "../pages/MyBookings";
 
 const parseJwt = (token) => {
   try {
@@ -23,6 +26,7 @@ const DROPDOWN_ITEMS = {
   investor: [
     { label:"Home",           to:"/",               icon:Home },
     { label:"Dashboard",      to:"/dashboard",      icon:LayoutDashboard },
+    { label:"My Bookings",    to:"/my-bookings",    icon:BookIcon },
     { label:"Saved Projects", to:"/saved-projects", icon:BookmarkCheck },
   ],
   builder: [

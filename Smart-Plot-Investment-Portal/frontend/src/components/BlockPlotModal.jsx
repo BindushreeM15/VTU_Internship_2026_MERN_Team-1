@@ -24,13 +24,12 @@ const BlockPlotModal = ({ plot, onClose, onSuccess }) => {
     try {
       setLoading(true);
 
-      // ✅ api utility already has base URL + auth token configured
       const response = await api.post("/api/bookings/block", {
         plotId: plot._id,
         tokenAmount: Number(tokenAmount),
       });
 
-      setSuccess("Plot blocked successfully! ✓");
+      setSuccess(response.data.message + " ✓");
 
       if (onSuccess) {
         onSuccess(response.data.booking);
@@ -115,12 +114,16 @@ const BlockPlotModal = ({ plot, onClose, onSuccess }) => {
           <p className="text-xs text-gray-500 mt-1">
             Token amount must be between ₹1 and ₹{plot.price?.toLocaleString("en-IN")}
           </p>
+          {Number(tokenAmount) === Number(plot.price) && (
+            <p className="text-xs text-green-700 mt-1">
+              ✅ Full payment amount entered. The plot will be confirmed immediately and marked sold.
+            </p>
+          )}
         </div>
 
         {/* Expiry Notice */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
-          ⏳ This plot will be reserved until <strong>{expiryDate}</strong>. If not
-          confirmed by then, it will be released automatically.
+          ⏳ This plot will be reserved until <strong>{expiryDate}</strong> if full payment is not made. If not confirmed by then, it will be released automatically.
         </div>
 
         {/* Success Message */}

@@ -231,10 +231,14 @@ export default function PlotDetail() {
           plot={plot}
           onClose={() => setShowBlockModal(false)}
           onSuccess={(booking) => {
-            toast.success("Plot blocked successfully! Booking expires in 30 days.");
+            if (booking.status === "confirmed") {
+              toast.success("Plot confirmed successfully with full payment.");
+              setPlot(prev => ({ ...prev, status: "sold" }));
+            } else {
+              toast.success("Plot blocked successfully! Booking expires in 30 days.");
+              setPlot(prev => ({ ...prev, status: "reserved" }));
+            }
             setShowBlockModal(false);
-            // Refresh plot status
-            setPlot(prev => ({ ...prev, status: "reserved" }));
           }}
         />
       )}

@@ -248,20 +248,23 @@ export default function AdminDashboard() {
   const [isLoading,       setIsLoading]       = useState(true);
   const [rejectModal,     setRejectModal]     = useState({ open:false, type:null, id:null });
   const [deactivateModal, setDeactivateModal] = useState({ open:false, id:null });
+  const [allPlots, setAllPlots] = useState([]);
 
   const fetchAll = async () => {
     setIsLoading(true);
     try {
-      const [kycRes, projRes, allBRes, allPRes] = await Promise.all([
+      const [kycRes, projRes, allBRes, allPRes, plotsRes] = await Promise.all([
         api.get("/api/admin/kyc/pending"),
         api.get("/api/admin/projects/pending"),
         api.get("/api/admin/kyc/all"),
         api.get("/api/admin/projects/all"),
+        api.get("/api/admin/plots"),
       ]);
       setPendingKYC(kycRes.data.builders || []);
       setPendingProjects(projRes.data.projects || []);
       setAllBuilders(allBRes.data.builders || []);
       setAllProjects(allPRes.data.projects || []);
+      setAllPlots(plotsRes.data.plots || []);
     } catch { toast.error("Failed to load admin data"); }
     finally { setIsLoading(false); }
   };
@@ -315,12 +318,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { label:"Pending KYC",      value:pendingKYC.length,     icon:Users },
             { label:"Pending Projects", value:pendingProjects.length, icon:FolderKanban },
             { label:"Total Builders",   value:allBuilders.length,     icon:Users },
             { label:"Total Projects",   value:allProjects.length,     icon:FolderKanban },
+            { label:"Total Plots",      value:allPlots.length,        icon:FolderKanban },
           ].map(s => (
             <div key={s.label} className="card-sp p-4 flex items-center gap-3">
               <s.icon className="h-5 w-5 text-primary shrink-0" />
@@ -349,6 +353,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="all-builders" className="text-sm">All Builders</TabsTrigger>
             <TabsTrigger value="all-projects"  className="text-sm">All Projects</TabsTrigger>
+            <TabsTrigger value="plots" className="text-sm">All Plots</TabsTrigger>
           </TabsList>
 
           {isLoading ? (
@@ -417,6 +422,40 @@ export default function AdminDashboard() {
                         onActivate={activateProj}
                         onDeactivate={id => setDeactivateModal({ open:true, id })}
                       />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+                      {tab === "plots" && (
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="text-base">All Plots ({allPlots.length})</CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="space-y-2">
+                    {allPlots.map((p, index) => (
+                      <div key={index} className="border-b py-3 text-sm">
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium">Plot {p.plotNumber} – {p.projectName}</p>
+                          <p className="text-muted-foreground">Builder: {p.builderName}</p>
+                          <p className="text-muted-foreground">
+                            Size: {p.sizeSqft} sqft | Facing: {p.facing} | Price: ₹{p.price.toLocaleString("en-IN")}
+                          </p>
+                          <p className="text-muted-foreground">Status: {p.status}</p>
+                          {p.tokenAmount != null && (
+                            <p className="text-muted-foreground">Paid: ₹{p.tokenAmount.toLocaleString("en-IN")} ({p.bookingStatus})</p>
+                          )}
+                          {p.investorName && (
+                            <p className="text-muted-foreground">Investor: {p.investorName} {p.investorEmail && `· ${p.investorEmail}`}</p>
+                          )}
+                          {p.expiresAt && p.bookingStatus === "reserved" && (
+                            <p className="text-xs text-amber-700">
+                              Reservation expires on {new Date(p.expiresAt).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
