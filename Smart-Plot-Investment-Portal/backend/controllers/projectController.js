@@ -1,45 +1,60 @@
-const Project  = require("../models/Project");
-const Plot     = require("../models/Plot");
+const Project = require("../models/Project");
+const Plot = require("../models/Plot");
 const cloudinary = require("../config/cloudinary");
 const mongoose = require("mongoose");
 const fs = require("fs").promises;
 const path = require("path");
+
 const uploadsDir = path.join(__dirname, "../uploads");
 
 const PROJECT_DOC_LABELS = {
-  reraCertificate:        "RERA Certificate",
-  landTitle:              "Land Title / Sale Deed",
-  dcConversion:           "DC Conversion Certificate",
-  approvedLayoutPlan:     "Approved Layout Plan",
+  reraCertificate: "RERA Certificate",
+  landTitle: "Land Title / Sale Deed",
+  dcConversion: "DC Conversion Certificate",
+  approvedLayoutPlan: "Approved Layout Plan",
   encumbranceCertificate: "Encumbrance Certificate",
 };
+
 const REQUIRED_PROJECT_DOCS = Object.keys(PROJECT_DOC_LABELS);
 
 // ── POST /api/projects/create ─────────────────────────────────────────────────
 exports.createProject = async (req, res) => {
   try {
-    const { projectName, location, locationLink, description, amenities, totalPlots, kathaType } = req.body;
+    const { projectName, location, locationLink, description, amenities, totalPlots, kathaType } =
+      req.body;
     const builderId = req.user.id;
 
     if (!projectName || !location || !description || !totalPlots) {
-      return res.status(400).json({ error: "projectName, location, description and totalPlots are required" });
+      return res.status(400).json({
+        error: "projectName, location, description and totalPlots are required",
+      });
     }
 
     const uploadedFiles = req.files || {};
-    const sketchFile    = uploadedFiles?.sketchImage?.[0];
-    const imageFiles    = uploadedFiles?.projectImages || [];
+    const sketchFile = uploadedFiles?.sketchImage?.[0];
+    const imageFiles = uploadedFiles?.projectImages || [];
 
     const project = new Project({
-      projectName, location,
-      locationLink:  locationLink || null,
+      projectName,
+      location,
+      locationLink: locationLink || null,
       description,
-      amenities:     Array.isArray(amenities) ? amenities : (amenities ? JSON.parse(amenities) : []),
-      totalPlots:    Number(totalPlots),
+      amenities: Array.isArray(amenities)
+        ? amenities
+        : amenities
+        ? JSON.parse(amenities)
+        : [],
+      totalPlots: Number(totalPlots),
       builderId,
       projectStatus: "draft",
-      kathaType:     kathaType || null,
-      sketchImage:   sketchFile ? { url: "/uploads/" + sketchFile.filename, publicId: sketchFile.filename } : null,
-      projectImages: imageFiles.map((f) => ({ url: "/uploads/" + f.filename, publicId: f.filename })),
+      kathaType: kathaType || null,
+      sketchImage: sketchFile
+        ? { url: "/uploads/" + sketchFile.filename, publicId: sketchFile.filename }
+        : null,
+      projectImages: imageFiles.map((f) => ({
+        url: "/uploads/" + f.filename,
+        publicId: f.filename,
+      })),
     });
 
     await project.save();
@@ -62,7 +77,10 @@ exports.getBuilderProjects = async (req, res) => {
 // ── GET /api/projects/:projectId ──────────────────────────────────────────────
 exports.getProjectById = async (req, res) => {
   try {
-    const project = await Project.findOne({ _id: req.params.projectId, builderId: req.user.id });
+    const project = await Project.findOne({
+      _id: req.params.projectId,
+      builderId: req.user.id,
+    });
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.json({ project });
   } catch (error) {
@@ -73,7 +91,17 @@ exports.getProjectById = async (req, res) => {
 // ── PUT /api/projects/update ──────────────────────────────────────────────────
 exports.updateProject = async (req, res) => {
   try {
-    const { projectId, projectName, location, locationLink, description, amenities, totalPlots, projectStatus, kathaType } = req.body;
+    const {
+      projectId,
+      projectName,
+      location,
+      locationLink,
+      description,
+      amenities,
+      totalPlots,
+      projectStatus,
+      kathaType,
+    } = req.body;
     const builderId = req.user.id;
 
     if (!projectId) return res.status(400).json({ error: "Project ID is required" });
@@ -88,18 +116,20 @@ exports.updateProject = async (req, res) => {
       return res.status(400).json({ error: "Cannot edit a completed project" });
     }
 
-    if (projectName  !== undefined) project.projectName  = projectName;
-    if (location     !== undefined) project.location     = location;
+    if (projectName !== undefined) project.projectName = projectName;
+    if (location !== undefined) project.location = location;
     if (locationLink !== undefined) project.locationLink = locationLink;
-    if (description  !== undefined) project.description  = description;
-    if (kathaType    !== undefined) project.kathaType    = kathaType;
-    if (amenities    !== undefined) {
+    if (description !== undefined) project.description = description;
+    if (kathaType !== undefined) project.kathaType = kathaType;
+    if (amenities !== undefined) {
       project.amenities = Array.isArray(amenities) ? amenities : JSON.parse(amenities);
     }
     if (totalPlots !== undefined) {
       const existingCount = await Plot.countDocuments({ projectId });
       if (Number(totalPlots) < existingCount) {
-        return res.status(400).json({ error: `Cannot reduce below current plot count (${existingCount})` });
+        return res.status(400).json({
+          error: `Cannot reduce below current plot count (${existingCount})`,
+        });
       }
       project.totalPlots = Number(totalPlots);
     }
@@ -108,15 +138,17 @@ exports.updateProject = async (req, res) => {
     if (projectStatus !== undefined) {
       const allowed = { verified: ["inactive"], active: ["inactive"], inactive: ["active"] };
       if (!(allowed[project.projectStatus] || []).includes(projectStatus)) {
-        return res.status(400).json({ error: `Cannot change from "${project.projectStatus}" to "${projectStatus}"` });
+        return res.status(400).json({
+          error: `Cannot change from "${project.projectStatus}" to "${projectStatus}"`,
+        });
       }
       project.projectStatus = projectStatus;
     }
 
     // New images
     const uploadedFiles = req.files || {};
-    const newSketch     = uploadedFiles?.sketchImage?.[0];
-    const newImages     = uploadedFiles?.projectImages || [];
+    const newSketch = uploadedFiles?.sketchImage?.[0];
+    const newImages = uploadedFiles?.projectImages || [];
 
     if (newSketch) {
       if (project.sketchImage?.publicId) {
@@ -125,14 +157,20 @@ exports.updateProject = async (req, res) => {
           await fs.unlink(filePath);
         } catch (_) {}
       }
-      project.sketchImage = { url: "/uploads/" + newSketch.filename, publicId: newSketch.filename };
+      project.sketchImage = {
+        url: "/uploads/" + newSketch.filename,
+        publicId: newSketch.filename,
+      };
     }
+
     if (newImages.length) {
       const current = project.projectImages?.length || 0;
       if (current + newImages.length > 5) {
         return res.status(400).json({ error: "Maximum 5 project images allowed" });
       }
-      project.projectImages.push(...newImages.map((f) => ({ url: "/uploads/" + f.filename, publicId: f.filename })));
+      project.projectImages.push(
+        ...newImages.map((f) => ({ url: "/uploads/" + f.filename, publicId: f.filename }))
+      );
     }
 
     await project.save();
@@ -143,12 +181,10 @@ exports.updateProject = async (req, res) => {
 };
 
 // ── DELETE /api/projects/delete ───────────────────────────────────────────────
-// Builder can delete any project in any status (except completed)
-// If under_review or active — add a warning but still allow
 exports.deleteProject = async (req, res) => {
   try {
     const { projectId } = req.body;
-    const builderId     = req.user.id;
+    const builderId = req.user.id;
 
     if (!projectId) return res.status(400).json({ error: "Project ID is required" });
 
@@ -159,53 +195,56 @@ exports.deleteProject = async (req, res) => {
       return res.status(400).json({ error: "Cannot delete a completed project" });
     }
 
-    // Clean local files
-    for (const doc of project.projectDocuments || []) {
-      try {
-        const filePath = path.join(uploadsDir, doc.publicId);
-        await fs.unlink(filePath);
-      } catch (_) {}
-    }
-    if (project.sketchImage?.publicId) {
-      try {
-        const filePath = path.join(uploadsDir, project.sketchImage.publicId);
-        await fs.unlink(filePath);
-      } catch (_) {}
-    }
-    for (const img of project.projectImages || []) {
-      try {
-        const filePath = path.join(uploadsDir, img.publicId);
-        await fs.unlink(filePath);
-      } catch (_) {}
-    }
-    if (project.kathaDocument?.publicId) {
-      try {
-        const filePath = path.join(uploadsDir, project.kathaDocument.publicId);
-        await fs.unlink(filePath);
-      } catch (_) {}
-    }
-
+    await _cleanupProjectFiles(project);
     await Plot.deleteMany({ projectId });
     await Project.findByIdAndDelete(projectId);
+
     res.json({ message: "Project deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// ── Internal helper: clean local files for a project ─────────────────────────
+async function _cleanupProjectFiles(project) {
+  for (const doc of project.projectDocuments || []) {
+    try {
+      await fs.unlink(path.join(uploadsDir, doc.publicId));
+    } catch (_) {}
+  }
+  if (project.sketchImage?.publicId) {
+    try {
+      await fs.unlink(path.join(uploadsDir, project.sketchImage.publicId));
+    } catch (_) {}
+  }
+  for (const img of project.projectImages || []) {
+    try {
+      await fs.unlink(path.join(uploadsDir, img.publicId));
+    } catch (_) {}
+  }
+  if (project.kathaDocument?.publicId) {
+    try {
+      await fs.unlink(path.join(uploadsDir, project.kathaDocument.publicId));
+    } catch (_) {}
+  }
+}
+
 // ── DELETE /api/projects/delete-project-image ─────────────────────────────────
 exports.deleteProjectImage = async (req, res) => {
   try {
     const { projectId, publicId, type } = req.body;
     const builderId = req.user.id;
+
     const project = await Project.findOne({ _id: projectId, builderId });
     if (!project) return res.status(404).json({ error: "Project not found" });
+
     try {
-      const filePath = path.join(uploadsDir, publicId);
-      await fs.unlink(filePath);
+      await fs.unlink(path.join(uploadsDir, publicId));
     } catch (_) {}
+
     if (type === "sketch") project.sketchImage = null;
     else project.projectImages = project.projectImages.filter((i) => i.publicId !== publicId);
+
     await project.save();
     res.json({ message: "Image deleted", project });
   } catch (error) {
@@ -219,127 +258,157 @@ exports.submitProjectForReview = async (req, res) => {
     const { projectId, kathaType } = req.body;
     const builderId = req.user.id;
 
-    // 1. Validate Project ID format to prevent CastError (500)
     if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ error: "A valid Project ID is required" });
     }
-
     if (!kathaType) return res.status(400).json({ error: "Katha type is required" });
 
     const project = await Project.findOne({ _id: projectId, builderId });
     if (!project) return res.status(404).json({ error: "Project not found" });
 
-    // 2. Status Checks
-    if (project.projectStatus === "under_review") return res.status(400).json({ error: "Already under review" });
-    if (["verified", "active"].includes(project.projectStatus)) return res.status(400).json({ error: "Already verified" });
+    if (project.projectStatus === "under_review")
+      return res.status(400).json({ error: "Already under review" });
+    if (["verified", "active"].includes(project.projectStatus))
+      return res.status(400).json({ error: "Already verified" });
 
     const uploadedFiles = req.files || {};
-    
-    // 3. Document Validation Logic
-    const submittedTypes = Object.keys(uploadedFiles).filter((k) => REQUIRED_PROJECT_DOCS.includes(k));
+    const submittedTypes = Object.keys(uploadedFiles).filter((k) =>
+      REQUIRED_PROJECT_DOCS.includes(k)
+    );
     const missingDocs = REQUIRED_PROJECT_DOCS.filter((d) => !submittedTypes.includes(d));
 
     if (missingDocs.length > 0) {
-      // Cleanup uploaded files if the set is incomplete
       for (const t of submittedTypes) {
         const file = uploadedFiles[t]?.[0];
         if (file?.filename) {
-          // Try to delete as raw (PDFs) and then as image (JPG/PNG)
-          try { await cloudinary.uploader.destroy(file.filename, { resource_type: "raw" }); } catch (_) {}
-          try { await cloudinary.uploader.destroy(file.filename); } catch (_) {}
+          try {
+            await cloudinary.uploader.destroy(file.filename, { resource_type: "raw" });
+          } catch (_) {}
+          try {
+            await cloudinary.uploader.destroy(file.filename);
+          } catch (_) {}
         }
       }
-      return res.status(400).json({ error: `Missing: ${missingDocs.map((d) => PROJECT_DOC_LABELS[d]).join(", ")}` });
+      return res.status(400).json({
+        error: `Missing: ${missingDocs.map((d) => PROJECT_DOC_LABELS[d]).join(", ")}`,
+      });
     }
 
-    // 4. Delete old project documents from local storage before replacing
-    const fs = require("fs").promises;
-    const path = require("path");
-    const uploadsDir = path.join(__dirname, "../uploads");
-    
+    // Delete old project documents from local storage before replacing
     for (const doc of project.projectDocuments || []) {
       try {
-        const filePath = path.join(uploadsDir, doc.publicId);
-        await fs.unlink(filePath);
+        await fs.unlink(path.join(uploadsDir, doc.publicId));
       } catch (_) {}
     }
 
-    // 5. Handle Katha Document (Optional)
+    // Handle Katha Document (Optional)
     const kathaFile = uploadedFiles?.kathaDocument?.[0];
     if (kathaFile) {
       if (!kathaFile.path || !kathaFile.filename) {
-        throw new Error("Katha document upload failed. Please check your internet connection and try again.");
+        throw new Error(
+          "Katha document upload failed. Please check your internet connection and try again."
+        );
       }
       if (project.kathaDocument?.publicId) {
         try {
-          const filePath = path.join(uploadsDir, project.kathaDocument.publicId);
-          await fs.unlink(filePath);
+          await fs.unlink(path.join(uploadsDir, project.kathaDocument.publicId));
         } catch (_) {}
       }
-      project.kathaDocument = { url: "/uploads/" + kathaFile.filename, publicId: kathaFile.filename };
+      project.kathaDocument = {
+        url: "/uploads/" + kathaFile.filename,
+        publicId: kathaFile.filename,
+      };
     }
 
-    // 6. Map and Save
     project.kathaType = kathaType;
     project.projectDocuments = submittedTypes.map((docType) => {
       const f = uploadedFiles[docType][0];
       if (!f || !f.path || !f.filename) {
-        throw new Error(`File upload failed for ${docType}. Please check your internet connection and try again.`);
+        throw new Error(
+          `File upload failed for ${docType}. Please check your internet connection and try again.`
+        );
       }
-      return { 
-        docType, 
-        label: PROJECT_DOC_LABELS[docType], 
-        fileUrl: "/uploads/" + f.filename, 
-        publicId: f.filename 
+      return {
+        docType,
+        label: PROJECT_DOC_LABELS[docType],
+        fileUrl: "/uploads/" + f.filename,
+        publicId: f.filename,
       };
     });
 
     project.projectStatus = "under_review";
     project.projectRejectionReason = null;
     project.projectSubmittedAt = new Date();
-
     await project.save();
-    res.json({ message: "Project submitted for review successfully!", project });
 
+    res.json({ message: "Project submitted for review successfully!", project });
   } catch (error) {
-    console.error("SUBMISSION_ERROR:", error); // Logs to your terminal
+    console.error("SUBMISSION_ERROR:", error);
     res.status(500).json({ error: "Server error: " + error.message });
   }
 };
 
-// ══════════════════════════════════════════════════════════════════════════════
-// PLOTS — no image handling
-// ══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// PLOTS
+// ═════════════════════════════════════════════════════════════════════════════
 
 exports.addPlot = async (req, res) => {
   try {
-    const { projectId, plotNumber, sizeSqft, dimensions, facing, roadWidth, price, cornerPlot, description, locationLink } = req.body;
+    const {
+      projectId,
+      plotNumber,
+      sizeSqft,
+      dimensions,
+      facing,
+      roadWidth,
+      price,
+      cornerPlot,
+      description,
+      locationLink,
+      // proximity fields
+      distanceToMetro,
+      distanceToHighway,
+      distanceToSchool,
+      distanceToHospital,
+    } = req.body;
     const builderId = req.user.id;
 
     const project = await Project.findOne({ _id: projectId, builderId });
     if (!project) return res.status(404).json({ error: "Project not found" });
-    if (!["verified","active"].includes(project.projectStatus)) {
-      return res.status(400).json({ error: "Plots can only be added to verified or active projects" });
+
+    if (!["verified", "active"].includes(project.projectStatus)) {
+      return res
+        .status(400)
+        .json({ error: "Plots can only be added to verified or active projects" });
     }
 
     const existingCount = await Plot.countDocuments({ projectId });
     if (existingCount >= project.totalPlots) {
-      return res.status(400).json({ error: `Plot limit reached (${project.totalPlots}). Edit project to increase Total Plots.` });
+      return res.status(400).json({
+        error: `Plot limit reached (${project.totalPlots}). Edit project to increase Total Plots.`,
+      });
     }
 
     const exists = await Plot.findOne({ projectId, plotNumber });
     if (exists) return res.status(400).json({ error: "Plot number already exists in this project" });
 
     const plot = new Plot({
-      projectId, builderId, plotNumber,
-      sizeSqft:    Number(sizeSqft),
-      dimensions:  dimensions   || null,
+      projectId,
+      builderId,
+      plotNumber,
+      sizeSqft: Number(sizeSqft),
+      dimensions: dimensions || null,
       facing,
       roadWidth,
-      price:       Number(price),
-      cornerPlot:  cornerPlot === "true" || cornerPlot === true,
-      description: description  || null,
+      price: Number(price),
+      cornerPlot: cornerPlot === "true" || cornerPlot === true,
+      description: description || null,
       locationLink: locationLink || null,
+      // proximity — store null if empty string or not provided
+      distanceToMetro: distanceToMetro !== "" && distanceToMetro != null ? Number(distanceToMetro) : null,
+      distanceToHighway: distanceToHighway !== "" && distanceToHighway != null ? Number(distanceToHighway) : null,
+      distanceToSchool: distanceToSchool !== "" && distanceToSchool != null ? Number(distanceToSchool) : null,
+      distanceToHospital: distanceToHospital !== "" && distanceToHospital != null ? Number(distanceToHospital) : null,
     });
 
     await plot.save();
@@ -351,8 +420,12 @@ exports.addPlot = async (req, res) => {
 
 exports.getProjectPlots = async (req, res) => {
   try {
-    const project = await Project.findOne({ _id: req.params.projectId, builderId: req.user.id });
+    const project = await Project.findOne({
+      _id: req.params.projectId,
+      builderId: req.user.id,
+    });
     if (!project) return res.status(404).json({ error: "Project not found" });
+
     const plots = await Plot.find({ projectId: req.params.projectId }).sort({ plotNumber: 1 });
     res.json({ plots, totalAllowed: project.totalPlots });
   } catch (error) {
@@ -373,20 +446,48 @@ exports.getAllBuilderPlots = async (req, res) => {
 
 exports.updatePlot = async (req, res) => {
   try {
-    const { plotId, plotNumber, sizeSqft, dimensions, facing, roadWidth, price, cornerPlot, description, locationLink, status } = req.body;
+    const {
+      plotId,
+      plotNumber,
+      sizeSqft,
+      dimensions,
+      facing,
+      roadWidth,
+      price,
+      cornerPlot,
+      description,
+      locationLink,
+      status,
+      // proximity fields
+      distanceToMetro,
+      distanceToHighway,
+      distanceToSchool,
+      distanceToHospital,
+    } = req.body;
+
     const plot = await Plot.findOne({ _id: plotId, builderId: req.user.id });
     if (!plot) return res.status(404).json({ error: "Plot not found" });
 
-    if (plotNumber   !== undefined) plot.plotNumber   = plotNumber;
-    if (sizeSqft     !== undefined) plot.sizeSqft     = Number(sizeSqft);
-    if (dimensions   !== undefined) plot.dimensions   = dimensions;
-    if (facing       !== undefined) plot.facing       = facing;
-    if (roadWidth    !== undefined) plot.roadWidth    = roadWidth;
-    if (price        !== undefined) plot.price        = Number(price);
-    if (cornerPlot   !== undefined) plot.cornerPlot   = cornerPlot === "true" || cornerPlot === true;
-    if (description  !== undefined) plot.description  = description;
+    if (plotNumber !== undefined) plot.plotNumber = plotNumber;
+    if (sizeSqft !== undefined) plot.sizeSqft = Number(sizeSqft);
+    if (dimensions !== undefined) plot.dimensions = dimensions;
+    if (facing !== undefined) plot.facing = facing;
+    if (roadWidth !== undefined) plot.roadWidth = roadWidth;
+    if (price !== undefined) plot.price = Number(price);
+    if (cornerPlot !== undefined) plot.cornerPlot = cornerPlot === "true" || cornerPlot === true;
+    if (description !== undefined) plot.description = description;
     if (locationLink !== undefined) plot.locationLink = locationLink;
-    if (status       !== undefined) plot.status       = status;
+    if (status !== undefined) plot.status = status;
+
+    // proximity — allow explicit null/empty to clear the value
+    if (distanceToMetro !== undefined)
+      plot.distanceToMetro = distanceToMetro !== "" && distanceToMetro != null ? Number(distanceToMetro) : null;
+    if (distanceToHighway !== undefined)
+      plot.distanceToHighway = distanceToHighway !== "" && distanceToHighway != null ? Number(distanceToHighway) : null;
+    if (distanceToSchool !== undefined)
+      plot.distanceToSchool = distanceToSchool !== "" && distanceToSchool != null ? Number(distanceToSchool) : null;
+    if (distanceToHospital !== undefined)
+      plot.distanceToHospital = distanceToHospital !== "" && distanceToHospital != null ? Number(distanceToHospital) : null;
 
     await plot.save();
     res.json({ message: "Plot updated", plot });
@@ -400,7 +501,9 @@ exports.deletePlot = async (req, res) => {
     const { plotId } = req.body;
     const plot = await Plot.findOne({ _id: plotId, builderId: req.user.id });
     if (!plot) return res.status(404).json({ error: "Plot not found" });
-    if (plot.status !== "available") return res.status(400).json({ error: "Only available plots can be deleted" });
+    if (plot.status !== "available")
+      return res.status(400).json({ error: "Only available plots can be deleted" });
+
     await Plot.findByIdAndDelete(plotId);
     res.json({ message: "Plot deleted" });
   } catch (error) {

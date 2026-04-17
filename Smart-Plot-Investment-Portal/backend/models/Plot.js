@@ -62,6 +62,27 @@ const plotSchema = new mongoose.Schema(
       enum: ["available", "reserved", "sold"],
       default: "available",
     },
+    // ── Infrastructure Proximity (km) ─────────────────────────────────────
+    distanceToMetro: {
+      type: Number,
+      default: null,
+      min: [0, "Distance cannot be negative"],
+    },
+    distanceToHighway: {
+      type: Number,
+      default: null,
+      min: [0, "Distance cannot be negative"],
+    },
+    distanceToSchool: {
+      type: Number,
+      default: null,
+      min: [0, "Distance cannot be negative"],
+    },
+    distanceToHospital: {
+      type: Number,
+      default: null,
+      min: [0, "Distance cannot be negative"],
+    },
   },
   { timestamps: true }
 );

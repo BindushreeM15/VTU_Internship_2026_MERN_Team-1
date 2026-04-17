@@ -55,21 +55,16 @@ exports.submitKYC = async (req, res) => {
     );
 
     if (submittedDocTypes.length < 3) {
-      // Clean up any uploaded files since we're rejecting the request
-      for (const type of submittedDocTypes) {
-        const file = uploadedFiles[type]?.[0];
-        if (file?.filename) await cloudinary.uploader.destroy(file.filename, { resource_type: "raw" });
-      }
-      return res.status(400).json({
-        error: "Please upload at least 3 documents for KYC verification",
-      });
-    }
+  return res.status(400).json({
+    error: "Please upload at least 3 documents for KYC verification",
+  });
+}
 
     // If resubmitting, delete old Cloudinary files first
     if (user.kycDocuments?.length) {
       for (const doc of user.kycDocuments) {
         try {
-          await cloudinary.uploader.destroy(doc.publicId, { resource_type: "raw" });
+          // await cloudinary.uploader.destroy(doc.publicId, { resource_type: "raw" });
         } catch (_) { /* ignore deletion errors */ }
       }
     }
@@ -80,7 +75,7 @@ exports.submitKYC = async (req, res) => {
       return {
         docType,
         label:    KYC_DOC_LABELS[docType],
-        fileUrl:  file.path,        // Cloudinary secure URL
+        fileUrl: "/uploads/" + file.filename,       // Cloudinary secure URL
         publicId: file.filename,    // Cloudinary public_id
       };
     });
