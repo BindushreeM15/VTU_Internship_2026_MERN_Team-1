@@ -1,9 +1,9 @@
 const dotenv = require("dotenv");
-dotenv.config();
+const path = require("path");
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const express = require("express");
 const cors    = require("cors");
-
 const { connectAll, adminConn, snipConn } = require("./config/db");
 const authRoutes       = require("./routes/authRoutes");
 const builderRoutes    = require("./routes/builderRoutes");
@@ -13,6 +13,7 @@ const adminRoutes      = require("./routes/adminRoutes");
 const publicRoutes     = require("./routes/publicRoutes");
 const interestRoutes   = require("./routes/interestRoutes");
 const { authenticate } = require("./middleware/auth");
+const bookingRoutes    = require("./routes/bookingRoutes");
 
 const app = express();
 
@@ -28,9 +29,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve uploaded files statically
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // ── DB connection middleware ───────────────────────────────────────────────────
 // readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
 // We reconnect if either connection is not in state 1 or 2.
+/*
 let dbPromise = null;
 
 const ensureDB = () => {
@@ -63,6 +68,7 @@ app.use(async (req, res, next) => {
     res.status(503).json({ error: "Database unavailable, please retry" });
   }
 });
+*/
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/auth",      authRoutes);
@@ -72,6 +78,7 @@ app.use("/api/kyc",       kycRoutes);
 app.use("/api/admin",     adminRoutes);
 app.use("/api/public",    publicRoutes);
 app.use("/api/interests", interestRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get("/api/protected", authenticate, (req, res) => {
@@ -91,8 +98,8 @@ app.get("/", (req, res) => {
 
 // ── Local dev only ────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  ensureDB()
+  const PORT = process.env.PORT || 5001;
+  connectAll()
     .then(() => app.listen(PORT, () => console.log(`Server running on port ${PORT}`)))
     .catch((err) => { console.error("Failed to start:", err); process.exit(1); });
 }

@@ -1,10 +1,12 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  LogOut, Sun, Moon, Menu, X, LayoutDashboard,
+  LogOut, Sun, Moon, Menu, X, LayoutDashboard, BarChart3,
   FolderKanban, MapPin, Users, Home, BookmarkCheck,
   ChevronDown, ShieldCheck, Building2,
+  BookImageIcon, BookIcon,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import MyBookings from "../pages/MyBookings";
 
 const parseJwt = (token) => {
   try {
@@ -23,6 +25,7 @@ const DROPDOWN_ITEMS = {
   investor: [
     { label:"Home",           to:"/",               icon:Home },
     { label:"Dashboard",      to:"/dashboard",      icon:LayoutDashboard },
+    { label:"My Bookings",    to:"/my-bookings",    icon:BookIcon },
     { label:"Saved Projects", to:"/saved-projects", icon:BookmarkCheck },
   ],
   builder: [
@@ -34,7 +37,7 @@ const DROPDOWN_ITEMS = {
     { label:"Home",        to:"/",                icon:Home },
     { label:"Dashboard",   to:"/dashboard",       icon:LayoutDashboard },
     { label:"Admin Panel", to:"/dashboard/admin", icon:Users },
-  ],
+    { label:"Analytics", to:"/dashboard/admin/analytics", icon:BarChart3 },  ],
 };
 
 const ROLE_COLORS = {
@@ -131,10 +134,12 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  const isActive = (to) =>
-    to === "/"
-      ? location.pathname === "/"
-      : location.pathname.startsWith(to);
+  const isActive = (to, exact = false) => {
+  if (exact) {
+    return location.pathname === to;
+  }
+  return location.pathname.startsWith(to);
+};
 
   return (
     <>
@@ -175,8 +180,13 @@ export default function Navbar() {
                 </Link>
               )}
               {isLoggedIn && role === "admin" && (
-                <Link to="/dashboard/admin" className={`navbar-link px-3 py-1.5 rounded-md text-sm font-medium ${isActive("/dashboard/admin") ? "navbar-link-active" : ""}`}>
+                <Link to="/dashboard/admin" className={`navbar-link px-3 py-1.5 rounded-md text-sm font-medium ${isActive("/dashboard/admin", true) ? "navbar-link-active" : ""}`}>
                   Admin Panel
+                </Link>
+              )}
+              {isLoggedIn && role === "admin" && (
+                <Link to="/dashboard/admin/analytics" className={`navbar-link px-3 py-1.5 rounded-md text-sm font-medium ${isActive("/dashboard/admin/analytics") ? "navbar-link-active" : ""}`}>
+                  Analytics
                 </Link>
               )}
             </div>
