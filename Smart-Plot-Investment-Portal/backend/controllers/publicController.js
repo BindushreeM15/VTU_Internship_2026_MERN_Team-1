@@ -203,7 +203,7 @@ exports.getPublicFilters = async (req, res) => {
       locations:     locations.sort(),
       minPrice:      priceAgg[0]?.minPrice || 0,
       maxPrice:      priceAgg[0]?.maxPrice || 10000000,
-      facingOptions: ["North","South","East","West","North-East","North-West","South-East","South-West"],
+      facingOptions: ["North","South","East","West","NorthEast","NorthWest","SouthEast","SouthWest"],
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

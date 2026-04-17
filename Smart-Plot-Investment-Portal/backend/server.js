@@ -98,7 +98,7 @@ app.get("/", (req, res) => {
 
 // ── Local dev only ────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
+  const PORT = process.env.PORT || 5001;
   connectAll()
     .then(() => app.listen(PORT, () => console.log(`Server running on port ${PORT}`)))
     .catch((err) => { console.error("Failed to start:", err); process.exit(1); });

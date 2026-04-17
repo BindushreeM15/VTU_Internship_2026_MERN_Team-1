@@ -200,3 +200,18 @@ exports.getAllPlots = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INVESTORS
+// ══════════════════════════════════════════════════════════════════════════════
+
+exports.getAllInvestors = async (req, res) => {
+  try {
+    const investors = await SnipUser.find({ role: "investor" })
+      .select("name email phone createdAt"); // keep it lightweight
+
+    res.json({ investors });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

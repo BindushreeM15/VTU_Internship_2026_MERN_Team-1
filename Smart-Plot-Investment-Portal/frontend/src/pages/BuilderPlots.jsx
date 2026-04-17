@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 const FACING_OPTIONS = [
   "North","South","East","West",
-  "North-East","North-West","South-East","South-West",
+  "NorthEast","NorthWest","SouthEast","SouthWest",
 ];
 const STATUS_OPTIONS = ["available","blocked","sold"];
 

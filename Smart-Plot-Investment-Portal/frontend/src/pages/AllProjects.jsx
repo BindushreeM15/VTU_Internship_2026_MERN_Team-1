@@ -194,9 +194,9 @@ export default function AllProjects() {
       </div>
 
       {/* Search + controls */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Search City Name */}
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             value={search}
             onChange={e=>setSearch(e.target.value)}
@@ -204,11 +204,13 @@ export default function AllProjects() {
             className="form-input pl-10 w-full"
           />
         </div>
+        {/* Select Locations */}
         <select value={location} onChange={e=>setLocation(e.target.value)}
           className="form-input sm:w-44">
           <option value="">All Cities</option>
           {filterData.locations?.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
+        {/* Select Trending */}
         <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
           className="form-input sm:w-44">
           <option value="trending">🔥 Trending</option>
@@ -216,6 +218,7 @@ export default function AllProjects() {
           <option value="price_asc">₹ Low to High</option>
           <option value="price_desc">₹ High to Low</option>
         </select>
+        {/* Filters */}
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg border font-medium text-sm transition-all"
