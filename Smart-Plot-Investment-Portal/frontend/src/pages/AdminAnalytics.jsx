@@ -54,6 +54,9 @@ const COLORS = {
     reserved: "#f59e0b",
     sold: "#ef4444",
     primary: "#D4552B",
+    riskLow: "#22c55e",
+    riskMedium: "#eab308",
+    riskHigh: "#ef4444",
 };
 
 const RADIAN = Math.PI / 180;
@@ -208,6 +211,18 @@ export default function AdminAnalytics() {
             color: COLORS.reserved,
         },
         { name: "Sold", value: plotCounts.sold, color: COLORS.sold },
+    ].filter((d) => d.value > 0);
+
+    // ── Risk distribution
+    const riskCounts = {
+        Low: projects.filter((p) => p.riskLevel === "Low").length,
+        Medium: projects.filter((p) => p.riskLevel === "Medium").length,
+        High: projects.filter((p) => p.riskLevel === "High").length,
+    };
+    const riskPieData = [
+        { name: "Low Risk", value: riskCounts.Low, color: COLORS.riskLow },
+        { name: "Medium Risk", value: riskCounts.Medium, color: COLORS.riskMedium },
+        { name: "High Risk", value: riskCounts.High, color: COLORS.riskHigh },
     ].filter((d) => d.value > 0);
 
     // ── Project bar chart (status breakdown)
@@ -749,8 +764,8 @@ export default function AdminAnalytics() {
                 </Card>
             </div>
 
-            {/* Row 4: KYC radial + Plot area */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Row 4: KYC radial + Risk + Plot area */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* KYC radial progress */}
                 <Card className="border-border">
                     <CardHeader className="pb-2">
@@ -813,6 +828,43 @@ export default function AdminAnalytics() {
                                 />
                             </RadialBarChart>
                         </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+
+                {/* Risk distribution area */}
+                <Card className="border-border">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-primary" /> Project Risk Breakdown
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ResponsiveContainer width="100%" height={220}>
+                            <PieChart>
+                                <Pie
+                                    data={riskPieData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    innerRadius={60}
+                                    outerRadius={90}
+                                    paddingAngle={2}
+                                    label={renderCustomLabel}
+                                >
+                                    {riskPieData.map((entry, idx) => (
+                                        <Cell key={`risk-${idx}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                            {riskPieData.map((item) => (
+                                <div key={item.name} className="rounded-lg border border-border p-2 text-center">
+                                    <div className="font-semibold text-foreground">{item.value}</div>
+                                    <div>{item.name}</div>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
 

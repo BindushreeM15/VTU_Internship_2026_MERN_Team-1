@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Badge } from "../components/ui/badge"; 
+import { Button } from "../components/ui/button";
 import api from "../utils/api";
 import {
     Search,
@@ -30,6 +32,7 @@ import {
     Twitter,
     CheckCircle2,
 } from "lucide-react";
+
 
 // Keep your existing helpers
 const parseJwt = (token) => {
@@ -345,6 +348,12 @@ function FeatureCard({ icon: Icon, title, desc }) {
 
 export default function Home() {
     const navigate = useNavigate();
+
+    
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
 
@@ -701,6 +710,33 @@ export default function Home() {
                     </div>
                 </div>
             </section>
+
+ {/* ── CTA SECTION ── */}
+                <section className={`relative text-center border-2 border-primary/20 bg-card/60 backdrop-blur-xl px-8 py-24 mb-24 overflow-hidden rounded-[3rem] ${mounted ? "anim-fadeup delay-500" : "opacity-0"}`}>
+                    <div className="glow-orb absolute inset-0 bg-primary/10 blur-3xl pointer-events-none" />
+                    <div className="relative z-10 space-y-8">
+                        <Badge variant="outline" className="text-primary border-primary/40 text-[11px] tracking-[4px] uppercase px-6 py-2 font-black bg-primary/5">
+                            Ready to Begin?
+                        </Badge>
+                        <h2 className="display-font text-5xl md:text-7xl font-black text-foreground leading-tight">
+                            Your next investment<br />
+                            <span className="italic text-primary">starts here.</span>
+                        </h2>
+                        <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed text-lg font-medium">
+                            Join thousands of investors already growing wealth through smart, verified land investments in India's top cities.
+                        </p>
+                        <div className="flex gap-6 justify-center flex-wrap pt-6">
+                            <Button asChild size="lg" className="h-16 px-14 tracking-[2px] uppercase text-sm font-black shadow-2xl shadow-primary/30 rounded-2xl">
+                                <Link to="/signup">Create Account</Link>
+                            </Button>
+                            <Button asChild size="lg" variant="outline" className="h-16 px-14 tracking-[2px] uppercase text-sm font-black rounded-2xl hover:bg-primary/5">
+                                <Link to="/login">Sign In</Link>
+                            </Button>
+                        </div>
+                    </div>
+                </section>
+
+
 
             {/* ── FOOTER ──────────────────────────────────────────────────────── */}
             <div className="section-divider" />

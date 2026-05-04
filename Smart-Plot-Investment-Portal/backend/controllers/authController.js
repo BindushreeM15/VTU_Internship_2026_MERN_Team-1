@@ -1,8 +1,7 @@
 const { AdminUser, SnipUser } = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const sendEmail = require("../utils/sendEmail");
-
+const { sendEmail, sendBookingConfirmationEmail } = require("../utils/sendEmail");
 const getUserModel = (role) => (role === "admin" ? AdminUser : SnipUser);
 
 // ── Investor signup ───────────────────────────────────────────────────────────
@@ -229,8 +228,9 @@ exports.sendResetLink = async (req, res) => {
         user.resetTokenExpiry = Date.now() + 10 * 60 * 1000;
         await user.save();
 
-        // 🔗 Encode token for URL safety
-        const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`;
+        // 🔗 Use frontend URL from env or fallback to deployed frontend
+        const frontendUrl = process.env.FRONTEND_URL || "https://smart-plot-investment-frontend.vercel.app";
+        const resetLink = `${frontendUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
         // 🎨 HTML EMAIL TEMPLATE
         const html = `

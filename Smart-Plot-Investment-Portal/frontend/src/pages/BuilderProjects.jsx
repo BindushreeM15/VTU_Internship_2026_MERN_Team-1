@@ -246,6 +246,12 @@ function ProjectCard({ project, onEdit, onDelete, onSubmitReview, onToggleStatus
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>Plots: <span className="text-foreground font-medium">{plotCount}</span></span>
           {project.kathaType && <span>Katha: <span className="text-foreground font-medium">{project.kathaType}</span></span>}
+          {project.expectedPrice != null && (
+            <span>Expected: <span className="text-foreground font-medium">₹{Number(project.expectedPrice).toLocaleString("en-IN")}</span></span>
+          )}
+          {project.expectedROI != null && (
+            <span>ROI: <span className="text-foreground font-medium">{project.expectedROI.toFixed(1)}%</span></span>
+          )}
           {project.locationLink && (
             <a href={project.locationLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary">
               Map <ExternalLink className="h-3 w-3" />
@@ -359,6 +365,7 @@ export default function BuilderProjects() {
   const [form, setForm] = useState({
     projectName: "", location: "", locationLink: "",
     description: "", amenities: [], totalPlots: "", kathaType: "",
+    expectedPrice: "",
   });
   const [sketchFile,    setSketchFile]    = useState(null);
   const [projectImages, setProjectImages] = useState(null);
@@ -397,7 +404,7 @@ export default function BuilderProjects() {
   };
 
   const resetForm = () => {
-    setForm({ projectName:"", location:"", locationLink:"", description:"", amenities:[], totalPlots:"", kathaType:"" });
+    setForm({ projectName:"", location:"", locationLink:"", description:"", amenities:[], totalPlots:"", kathaType:"", expectedPrice:"" });
     setSketchFile(null);
     setProjectImages(null);
   };
@@ -442,6 +449,7 @@ export default function BuilderProjects() {
       amenities:    project.amenities || [],
       totalPlots:   String(project.totalPlots),
       kathaType:    project.kathaType || "",
+      expectedPrice: project.expectedPrice != null ? String(project.expectedPrice) : "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -515,6 +523,10 @@ export default function BuilderProjects() {
                 <div>
                   <label className="form-label">Total Plots <span className="text-destructive">*</span></label>
                   <Input name="totalPlots" type="number" min="1" value={form.totalPlots} onChange={handleChange} placeholder="e.g. 20" className="mt-1" />
+                </div>
+                <div>
+                  <label className="form-label">Expected Sale Price</label>
+                  <Input name="expectedPrice" type="number" min="0" value={form.expectedPrice} onChange={handleChange} placeholder="e.g. 5000000" className="mt-1" />
                 </div>
                 <div>
                   <label className="form-label">Google Maps Link</label>

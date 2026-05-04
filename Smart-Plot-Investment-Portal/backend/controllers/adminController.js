@@ -5,6 +5,7 @@ const Booking = require("../models/booking");
 const Interest = require("../models/Interest");
 const fs = require("fs").promises;
 const path = require("path");
+const { calculateRiskScore, getRiskLevel } = require("../utils/complianceCalculator");
 
 const uploadsDir = path.join(__dirname, "../uploads");
 
@@ -189,7 +190,7 @@ exports.getAllProjects = async (req, res) => {
         const projects = await Project.find()
             .populate("builderId", "name email companyName")
             .select(
-                "projectName location projectStatus totalPlots kathaType projectSubmittedAt projectVerifiedAt builderId createdAt viewCount interestCount",
+                "projectName location projectStatus totalPlots kathaType projectSubmittedAt projectVerifiedAt builderId createdAt viewCount interestCount riskScore riskLevel expectedPrice expectedROI",
             );
         res.json({ projects });
     } catch (error) {
@@ -208,6 +209,11 @@ exports.approveProject = async (req, res) => {
         project.projectStatus = "verified";
         project.projectVerifiedAt = new Date();
         project.projectRejectionReason = null;
+        
+        // Calculate and save compliance risk score
+        project.riskScore = calculateRiskScore(project.projectDocuments, project.kathaType);
+        project.riskLevel = getRiskLevel(project.riskScore);
+        
         await project.save();
         res.json({
             message: `"${project.projectName}" approved`,
@@ -334,7 +340,7 @@ exports.getAllPlots = async (req, res) => {
             .populate("projectId", "projectName location")
             .populate("builderId", "name companyName")
             .select(
-                "plotNumber sizeSqft price facing status projectId builderId createdAt distanceToMetro distanceToHighway distanceToSchool distanceToHospital",
+                "plotNumber sizeSqft price facing status projectId builderId createdAt distanceToMetro distanceToHighway distanceToSchool distanceToHospital expectedPrice expectedROI",
             )
             .sort({ createdAt: -1 });
 
@@ -369,6 +375,8 @@ exports.getAllPlots = async (req, res) => {
                 investorName: booking?.userId?.name ?? null,
                 investorEmail: booking?.userId?.email ?? null,
                 expiresAt: booking?.expiresAt ?? null,
+                expectedPrice: p.expectedPrice || null,
+                expectedROI: p.expectedROI || null,
             };
         });
 

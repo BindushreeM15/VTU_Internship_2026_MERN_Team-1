@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const defaultApiUrl = import.meta.env.VITE_API_URL || (
+  import.meta.env.MODE === 'production'
+    ? 'https://smart-plot-investment-backend.vercel.app'
+    : 'http://localhost:5000'
+);
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  baseURL: defaultApiUrl,
   timeout: 15000,
 });
 

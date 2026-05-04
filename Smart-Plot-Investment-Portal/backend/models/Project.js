@@ -71,6 +71,12 @@ const projectSchema = new mongoose.Schema({
   viewCount:     { type: Number, default: 0, min: 0 },
   interestCount: { type: Number, default: 0, min: 0 },
 
+  // ── Compliance & Investment Metrics ────────────────────────────────────────
+  riskScore:     { type: Number, default: 0, min: 0, max: 100 },
+  riskLevel:     { type: String, enum: ["Low", "Medium", "High"], default: "High" },
+  expectedPrice: { type: Number, default: null, min: 0 },
+  expectedROI:   { type: Number, default: null },
+
 }, { timestamps: true });
 
 // Indexes

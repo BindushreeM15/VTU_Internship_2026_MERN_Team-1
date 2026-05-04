@@ -279,6 +279,31 @@ export default function PlotDetail() {
             )}
           </div>
 
+          {/* ROI Card */}
+          {plot.expectedROI != null && (
+            <div
+              className="rounded-xl p-4"
+              style={{
+                background: plot.expectedROI > 0 
+                  ? "color-mix(in srgb, #22c55e 8%, var(--card))"
+                  : "color-mix(in srgb, #ef4444 8%, var(--card))",
+                border: plot.expectedROI > 0
+                  ? "1px solid color-mix(in srgb, #22c55e 20%, transparent)"
+                  : "1px solid color-mix(in srgb, #ef4444 20%, transparent)",
+              }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Expected ROI</p>
+              <p className="display-font text-3xl font-bold" style={{ color: plot.expectedROI > 0 ? "#22c55e" : "#ef4444" }}>
+                {plot.expectedROI > 0 ? "↑" : "↓"} {Math.abs(plot.expectedROI).toFixed(1)}%
+              </p>
+              {plot.expectedPrice && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Expected: {formatPrice(plot.expectedPrice)}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Specs */}
           <div className="rounded-xl border px-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
             <SpecRow icon={Ruler} label="Size" value={plot.sizeSqft ? `${plot.sizeSqft} sq.ft` : null} />
@@ -319,6 +344,7 @@ export default function PlotDetail() {
             if (booking.status === "confirmed") {
               toast.success("Plot confirmed successfully with full payment.");
               setPlot((prev) => ({ ...prev, status: "sold" }));
+              navigate(`/booking/${booking._id}/confirmation`);
             } else {
               toast.success("Plot blocked successfully! Booking expires in 30 days.");
               setPlot((prev) => ({ ...prev, status: "reserved" }));

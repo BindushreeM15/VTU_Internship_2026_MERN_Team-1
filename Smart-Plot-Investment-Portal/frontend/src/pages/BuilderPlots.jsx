@@ -112,6 +112,11 @@ function PlotCard({ plot, onEdit, onDelete, onStatusChange }) {
         <span>Facing: <span className="text-foreground font-medium">{plot.facing}</span></span>
         <span>Road: <span className="text-foreground font-medium">{plot.roadWidth}</span></span>
         {plot.pricePerSqft && <span className="text-primary font-semibold">₹{plot.pricePerSqft.toLocaleString("en-IN")}/sqft</span>}
+        {plot.expectedROI != null && (
+          <span className="text-xs font-semibold col-span-2" style={{ color: plot.expectedROI >= 0 ? "#16a34a" : "#dc2626" }}>
+            {plot.expectedROI >= 0 ? "↑" : "↓"} {Math.abs(plot.expectedROI).toFixed(1)}% ROI
+          </span>
+        )}
         {plot.cornerPlot && <span className="text-primary font-semibold col-span-2">✦ Corner Plot</span>}
       </div>
 
@@ -201,6 +206,10 @@ function PlotFormFields({ form, onChange, onSelectChange }) {
         <div>
           <label className="form-label">Price (₹) <span className="text-destructive">*</span></label>
           <Input name="price" type="number" min="0" value={form.price} onChange={onChange} placeholder="e.g. 500000" className="mt-1" />
+        </div>
+        <div>
+          <label className="form-label">Expected Sale Price</label>
+          <Input name="expectedPrice" type="number" min="0" value={form.expectedPrice} onChange={onChange} placeholder="e.g. 600000" className="mt-1" />
         </div>
         <div>
           <label className="form-label">Description</label>
@@ -308,7 +317,7 @@ export default function BuilderPlots() {
 
   const emptyAdd = {
     projectId: "", plotNumber: "", sizeSqft: "", dimensions: "",
-    facing: "", roadWidth: "", price: "", cornerPlot: false,
+    facing: "", roadWidth: "", price: "", expectedPrice: "", cornerPlot: false,
     description: "", locationLink: "",
     distanceToMetro: "", distanceToHighway: "", distanceToSchool: "", distanceToHospital: "",
   };
@@ -316,7 +325,7 @@ export default function BuilderPlots() {
 
   const emptyEdit = {
     plotNumber: "", sizeSqft: "", dimensions: "", facing: "",
-    roadWidth: "", price: "", cornerPlot: false,
+    roadWidth: "", price: "", expectedPrice: "", cornerPlot: false,
     description: "", locationLink: "", status: "available",
     distanceToMetro: "", distanceToHighway: "", distanceToSchool: "", distanceToHospital: "",
   };
@@ -386,6 +395,7 @@ export default function BuilderPlots() {
         facing: addForm.facing,
         roadWidth: addForm.roadWidth.trim(),
         price: Number(addForm.price),
+        expectedPrice: addForm.expectedPrice !== "" ? Number(addForm.expectedPrice) : null,
         cornerPlot: addForm.cornerPlot,
         description: addForm.description || undefined,
         locationLink: addForm.locationLink || undefined,
@@ -413,6 +423,7 @@ export default function BuilderPlots() {
       facing: plot.facing,
       roadWidth: plot.roadWidth,
       price: String(plot.price),
+      expectedPrice: plot.expectedPrice != null ? String(plot.expectedPrice) : "",
       cornerPlot: plot.cornerPlot || false,
       description: plot.description || "",
       locationLink: plot.locationLink || "",
@@ -442,6 +453,7 @@ export default function BuilderPlots() {
         facing: editForm.facing,
         roadWidth: editForm.roadWidth.trim(),
         price: Number(editForm.price),
+        expectedPrice: editForm.expectedPrice !== "" ? Number(editForm.expectedPrice) : null,
         cornerPlot: editForm.cornerPlot,
         description: editForm.description || undefined,
         locationLink: editForm.locationLink || undefined,

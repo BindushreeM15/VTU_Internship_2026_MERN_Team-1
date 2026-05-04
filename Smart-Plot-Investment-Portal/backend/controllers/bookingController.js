@@ -1,5 +1,7 @@
 const Booking = require("../models/booking");
 const Plot = require("../models/Plot");
+const User = require("../models/User");
+const { sendBookingConfirmationEmail } = require("../utils/sendEmail");
 
 // POST /api/bookings/block
 const blockPlot = async (req, res) => {
@@ -271,4 +273,127 @@ const confirmBooking = async (req, res) => {
   }
 };
 
-module.exports = { blockPlot, getMyBookings, getBookingById, cancelBooking, confirmBooking, topUpBooking };
+// GET /api/bookings/:bookingId/details  (get full booking details with plot and builder info)
+const getBookingDetails = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.id;
+
+    const booking = await Booking.findOne({ _id: bookingId, userId })
+      .populate({
+        path: "plotId",
+        select: "plotNumber sizeSqft facing price status roadWidth projectId",
+      })
+      .populate({
+        path: "projectId",
+        select: "projectName location bannerImages description amenities",
+        populate: {
+          path: "builderId",
+          select: "name companyName email phone address",
+        },
+      });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Format response with structured data
+    const response = {
+      bookingId: booking._id,
+      status: booking.status,
+      tokenAmount: booking.tokenAmount,
+      createdAt: booking.createdAt,
+      expiresAt: booking.expiresAt,
+      plot: booking.plotId ? {
+        id: booking.plotId._id,
+        number: booking.plotId.plotNumber,
+        size: booking.plotId.sizeSqft,
+        facing: booking.plotId.facing,
+        price: booking.plotId.price,
+        roadWidth: booking.plotId.roadWidth,
+        status: booking.plotId.status,
+      } : null,
+      project: booking.projectId ? {
+        id: booking.projectId._id,
+        name: booking.projectId.projectName,
+        location: booking.projectId.location,
+        description: booking.projectId.description,
+        amenities: booking.projectId.amenities,
+        bannerImages: booking.projectId.bannerImages,
+        builder: booking.projectId.builderId ? {
+          id: booking.projectId.builderId._id,
+          name: booking.projectId.builderId.name,
+          companyName: booking.projectId.builderId.companyName,
+          email: booking.projectId.builderId.email,
+          phone: booking.projectId.builderId.phone,
+          address: booking.projectId.builderId.address,
+        } : null,
+      } : null,
+    };
+
+    return res.status(200).json({ booking: response });
+  } catch (error) {
+    console.error("Get booking details error:", error);
+    return res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+// POST /api/bookings/:bookingId/send-confirmation-email  (send confirmation email)
+const sendConfirmationEmail = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.id;
+
+    const booking = await Booking.findOne({ _id: bookingId, userId })
+      .populate({
+        path: "plotId",
+        select: "plotNumber sizeSqft facing price status roadWidth projectId",
+      })
+      .populate({
+        path: "projectId",
+        select: "projectName location bannerImages description amenities",
+        populate: {
+          path: "builderId",
+          select: "name companyName email phone address",
+        },
+      });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Get investor details
+    const investor = await User.findById(userId, "name email");
+    if (!investor) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Send confirmation email
+    const emailData = {
+      investorName: investor.name,
+      bookingId: booking._id,
+      plotNumber: booking.plotId?.plotNumber,
+      plotSize: booking.plotId?.sizeSqft,
+      plotFacing: booking.plotId?.facing,
+      plotPrice: booking.plotId?.price,
+      tokenAmount: booking.tokenAmount,
+      projectName: booking.projectId?.projectName,
+      projectLocation: booking.projectId?.location,
+      builderName: booking.projectId?.builderId?.name,
+      builderCompany: booking.projectId?.builderId?.companyName,
+      builderPhone: booking.projectId?.builderId?.phone,
+      builderEmail: booking.projectId?.builderId?.email,
+    };
+
+    await sendBookingConfirmationEmail(investor.email, emailData);
+
+    return res.status(200).json({
+      message: "Confirmation email sent successfully",
+    });
+  } catch (error) {
+    console.error("Send confirmation email error:", error);
+    return res.status(500).json({ message: "Failed to send email. Please try again." });
+  }
+};
+
+module.exports = { blockPlot, getMyBookings, getBookingById, cancelBooking, confirmBooking, topUpBooking, getBookingDetails, sendConfirmationEmail };

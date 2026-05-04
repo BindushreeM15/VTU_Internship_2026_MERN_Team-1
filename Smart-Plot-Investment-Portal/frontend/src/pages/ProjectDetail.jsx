@@ -158,6 +158,101 @@ function TrustSection({ project }) {
   );
 }
 
+// ── Compliance Score Card ─────────────────────────────────────────────────────
+function ComplianceScoreCard({ project, metrics }) {
+  if (!metrics) return null;
+  
+  const riskColors = {
+    Low: { bg: "#ECFDF5", text: "#065F46", bar: "#22c55e" },
+    Medium: { bg: "#FFFBEB", text: "#92400E", bar: "#eab308" },
+    High: { bg: "#FEF2F2", text: "#991B1B", bar: "#ef4444" },
+  };
+  
+  const colors = riskColors[metrics.riskLevel] || riskColors.High;
+  const scorePercent = metrics.riskScore || 0;
+
+  return (
+    <div
+      className="rounded-xl border p-5 space-y-4"
+      style={{ background: "var(--card)", borderColor: "var(--border)" }}
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-foreground flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-blue-600" /> Compliance Score
+        </h3>
+        <span
+          className="text-xs font-semibold px-2.5 py-1 rounded-full"
+          style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.bar}` }}
+        >
+          {metrics.riskLevel} Risk
+        </span>
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Score</span>
+          <span className="text-lg font-bold text-foreground">{metrics.riskScore}/100</span>
+        </div>
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full transition-all"
+            style={{ width: `${scorePercent}%`, background: colors.bar }}
+          />
+        </div>
+      </div>
+
+      <div className="pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+        <p className="text-xs text-muted-foreground mb-2 font-medium">DOCUMENTS VERIFIED</p>
+        <div className="space-y-1.5">
+          {project.projectDocuments?.map((doc, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-xs text-foreground">
+              <span style={{ color: colors.bar }}>✓</span>
+              {doc.label}
+            </div>
+          ))}
+        </div>
+      </div>
+      {metrics.recommendation && (
+        <div className="mt-4 rounded-xl border p-4 text-sm" style={{ background: "color-mix(in srgb, var(--primary) 6%, var(--card))", borderColor: "var(--border)" }}>
+          <p className="font-semibold text-foreground">Investment Recommendation</p>
+          <p className="mt-2 text-sm" style={{ color: colors.bar }}>
+            {metrics.recommendation}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LegalSummaryCard({ summary }) {
+  if (!summary) return null;
+  return (
+    <div className="rounded-xl border p-5 space-y-4" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-foreground">Legal Summary</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Risk: {summary.riskLevel}</span>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Compliance Highlights</p>
+          <ul className="mt-2 space-y-2 text-sm text-foreground">
+            {summary.compliance.map((item, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <span className="mt-0.5 text-green-600">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          <p>{summary.kathaInfo}</p>
+          <p className="mt-1">Score: <span className="text-foreground font-semibold">{summary.score}/100</span></p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Plot card with proximity indicators ───────────────────────────────────────
 const STATUS_STYLES = { available: "status-available", reserved: "status-blocked", sold: "status-sold" };
 
@@ -242,24 +337,30 @@ export default function ProjectDetail() {
 
   const [project, setProject] = useState(null);
   const [plots, setPlots] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [legalSummary, setLegalSummary] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    api
-      .get(`/api/public/projects/${projectId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      .then((r) => {
-        setProject(r.data.project);
-        setPlots(r.data.plots || []);
-        setIsSaved(r.data.isSaved || false);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const projectPromise = api.get(`/api/public/projects/${projectId}`, { headers });
+    const metricsPromise = api.get(`/api/projects/${projectId}/metrics`, { headers });
+    const legalPromise = api.get(`/api/projects/${projectId}/legal-summary`, { headers });
+
+    Promise.all([projectPromise, metricsPromise, legalPromise])
+      .then(([projectRes, metricsRes, legalRes]) => {
+        setProject(projectRes.data.project);
+        setPlots(projectRes.data.plots || []);
+        setIsSaved(projectRes.data.isSaved || false);
+        setMetrics(metricsRes.data.metrics);
+        setLegalSummary(legalRes.data.legalSummary);
       })
       .catch(() => { toast.error("Project not found"); navigate("/"); })
       .finally(() => setIsLoading(false));
-  }, [projectId]);
+  }, [projectId, token, navigate]);
 
   const handleToggleInterest = async () => {
     if (!isLoggedIn) { navigate("/login"); return; }
@@ -409,6 +510,10 @@ export default function ProjectDetail() {
 
       {/* Trust section */}
       <TrustSection project={project} />
+
+      {/* Compliance Score */}
+      {metrics && <ComplianceScoreCard project={project} metrics={metrics} />}
+      {legalSummary && <LegalSummaryCard summary={legalSummary} />}
 
       {/* Amenities */}
       {project.amenities?.length > 0 && (

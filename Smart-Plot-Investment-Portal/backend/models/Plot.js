@@ -83,6 +83,16 @@ const plotSchema = new mongoose.Schema(
       default: null,
       min: [0, "Distance cannot be negative"],
     },
+    // ── Investment Metrics ───────────────────────────────────────────────────
+    expectedPrice: {
+      type: Number,
+      default: null,
+      min: [0, "Expected price cannot be negative"],
+    },
+    expectedROI: {
+      type: Number,
+      default: null,
+    },
   },
   { timestamps: true }
 );

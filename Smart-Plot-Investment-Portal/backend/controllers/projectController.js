@@ -4,6 +4,7 @@ const cloudinary = require("../config/cloudinary");
 const mongoose = require("mongoose");
 const fs = require("fs").promises;
 const path = require("path");
+const { calculateRiskScore, getRiskLevel, generateLegalSummary, calculateROI, getInvestmentRecommendation } = require("../utils/complianceCalculator");
 
 const uploadsDir = path.join(__dirname, "../uploads");
 
@@ -28,6 +29,7 @@ exports.createProject = async (req, res) => {
             amenities,
             totalPlots,
             kathaType,
+            expectedPrice,
         } = req.body;
         const builderId = req.user.id;
 
@@ -55,6 +57,7 @@ exports.createProject = async (req, res) => {
             builderId,
             projectStatus: "draft",
             kathaType: kathaType || null,
+            expectedPrice: expectedPrice ? Number(expectedPrice) : null,
             sketchImage: sketchFile
                 ? {
                       url: "/uploads/" + sketchFile.filename,
@@ -114,6 +117,7 @@ exports.updateProject = async (req, res) => {
             totalPlots,
             projectStatus,
             kathaType,
+            expectedPrice,
         } = req.body;
         const builderId = req.user.id;
 
@@ -140,6 +144,18 @@ exports.updateProject = async (req, res) => {
         if (locationLink !== undefined) project.locationLink = locationLink;
         if (description !== undefined) project.description = description;
         if (kathaType !== undefined) project.kathaType = kathaType;
+        if (expectedPrice !== undefined) {
+            project.expectedPrice = expectedPrice !== "" ? Number(expectedPrice) : null;
+            if (project.expectedPrice != null) {
+                const plots = await Plot.find({ projectId });
+                if (plots.length > 0) {
+                    const avgCurrentPrice = plots.reduce((sum, p) => sum + p.price, 0) / plots.length;
+                    project.expectedROI = calculateROI(avgCurrentPrice, project.expectedPrice);
+                }
+            } else {
+                project.expectedROI = null;
+            }
+        }
         if (amenities !== undefined) {
             project.amenities = Array.isArray(amenities)
                 ? amenities
@@ -396,6 +412,11 @@ exports.submitProjectForReview = async (req, res) => {
         project.projectStatus = "under_review";
         project.projectRejectionReason = null;
         project.projectSubmittedAt = new Date();
+        
+        // Calculate compliance risk score
+        project.riskScore = calculateRiskScore(project.projectDocuments, project.kathaType);
+        project.riskLevel = getRiskLevel(project.riskScore);
+        
         await project.save();
 
         res.json({
@@ -425,6 +446,7 @@ exports.addPlot = async (req, res) => {
             cornerPlot,
             description,
             locationLink,
+            expectedPrice,
             // proximity fields
             distanceToMetro,
             distanceToHighway,
@@ -465,9 +487,11 @@ exports.addPlot = async (req, res) => {
             facing,
             roadWidth,
             price: Number(price),
+            expectedPrice: expectedPrice !== undefined && expectedPrice !== "" ? Number(expectedPrice) : null,
             cornerPlot: cornerPlot === "true" || cornerPlot === true,
             description: description || null,
             locationLink: locationLink || null,
+            expectedROI: expectedPrice !== undefined && expectedPrice !== "" ? calculateROI(Number(price), Number(expectedPrice)) : null,
             // proximity — store null if empty string or not provided
             distanceToMetro:
                 distanceToMetro !== "" && distanceToMetro != null
@@ -567,6 +591,10 @@ exports.updatePlot = async (req, res) => {
             plot.cornerPlot = cornerPlot === "true" || cornerPlot === true;
         if (description !== undefined) plot.description = description;
         if (locationLink !== undefined) plot.locationLink = locationLink;
+        if (expectedPrice !== undefined) {
+            plot.expectedPrice = expectedPrice !== "" ? Number(expectedPrice) : null;
+            plot.expectedROI = plot.expectedPrice != null ? calculateROI(plot.price, plot.expectedPrice) : null;
+        }
         if (status !== undefined) plot.status = status;
 
         // proximity — allow explicit null/empty to clear the value
@@ -613,6 +641,99 @@ exports.deletePlot = async (req, res) => {
 
         await Plot.findByIdAndDelete(plotId);
         res.json({ message: "Plot deleted" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// COMPLIANCE & INVESTMENT METRICS
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/projects/:projectId/legal-summary ────────────────────────────────
+exports.getLegalSummary = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.projectId);
+        if (!project)
+            return res.status(404).json({ error: "Project not found" });
+
+        const legalSummary = generateLegalSummary(project);
+        res.json({ legalSummary });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ── GET /api/projects/:projectId/metrics ──────────────────────────────────────
+exports.getProjectMetrics = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.projectId);
+        if (!project)
+            return res.status(404).json({ error: "Project not found" });
+
+        const metrics = {
+            riskScore: project.riskScore || 0,
+            riskLevel: project.riskLevel || "High",
+            expectedPrice: project.expectedPrice || null,
+            expectedROI: project.expectedROI || null,
+            recommendation: project.expectedROI && project.riskScore 
+                ? getInvestmentRecommendation(project.expectedROI, project.riskScore)
+                : null,
+        };
+
+        res.json({ metrics });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ── PUT /api/projects/update-expected-price ───────────────────────────────────
+exports.updateExpectedPrice = async (req, res) => {
+    try {
+        const { projectId, expectedPrice } = req.body;
+        const builderId = req.user.id;
+
+        if (!projectId)
+            return res.status(400).json({ error: "Project ID is required" });
+
+        const project = await Project.findOne({ _id: projectId, builderId });
+        if (!project)
+            return res.status(404).json({ error: "Project not found" });
+
+        if (expectedPrice !== undefined && expectedPrice !== null) {
+            project.expectedPrice = Number(expectedPrice);
+            
+            // Calculate ROI based on average plot price
+            const plots = await Plot.find({ projectId });
+            if (plots.length > 0) {
+                const avgCurrentPrice = plots.reduce((sum, p) => sum + p.price, 0) / plots.length;
+                project.expectedROI = calculateROI(avgCurrentPrice, expectedPrice);
+            }
+        }
+
+        await project.save();
+        res.json({ message: "Expected price updated", project });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ── PUT /api/plots/update-expected-price ──────────────────────────────────────
+exports.updatePlotExpectedPrice = async (req, res) => {
+    try {
+        const { plotId, expectedPrice } = req.body;
+
+        const plot = await Plot.findOne({ _id: plotId, builderId: req.user.id });
+        if (!plot)
+            return res.status(404).json({ error: "Plot not found" });
+
+        if (expectedPrice !== undefined && expectedPrice !== null) {
+            plot.expectedPrice = Number(expectedPrice);
+            plot.expectedROI = calculateROI(plot.price, expectedPrice);
+        }
+
+        await plot.save();
+        res.json({ message: "Expected price updated", plot });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
