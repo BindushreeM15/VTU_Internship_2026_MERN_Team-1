@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../utils/api";
+import { imgUrl } from "../utils/imageUrl";
 import { toast } from "sonner";
 import {
   ArrowLeft, MapPin, ExternalLink, Loader2,
@@ -24,15 +25,9 @@ const STATUS_STYLES = {
 
 // ── Project image slideshow ───────────────────────────────────────────────────
 function ProjectImageSlideshow({ sketchImage, projectImages, companyName }) {
-  const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const toUrl = (url) => {
-    if (!url) return null;
-    return url.startsWith("http") ? url : `${BASE}${url}`;
-  };
-
   const allImages = [
-    ...(sketchImage ? [{ url: toUrl(sketchImage.url), label: "Layout" }] : []),
-    ...(projectImages || []).map((i) => ({ url: toUrl(i.url), label: "Photo" })),
+    ...(sketchImage ? [{ url: imgUrl(sketchImage.url), label: "Layout" }] : []),
+    ...(projectImages || []).map((i) => ({ url: imgUrl(i.url), label: "Photo" })),
   ];
   const [idx, setIdx] = useState(0);
   const timer = useRef(null);

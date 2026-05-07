@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import { imgUrl } from "../utils/imageUrl";
 import { toast } from "sonner";
 import {
   BookmarkCheck, Building2, MapPin, Heart, Eye,
@@ -83,7 +84,7 @@ export default function SavedProjects() {
               <div className="h-44 bg-muted relative overflow-hidden">
                 {project.sketchImage || project.projectImages?.[0] ? (
                   <img
-                    src={project.sketchImage?.url || project.projectImages[0]?.url}
+                    src={imgUrl(project.sketchImage?.url || project.projectImages[0]?.url)}
                     alt={project.projectName}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />

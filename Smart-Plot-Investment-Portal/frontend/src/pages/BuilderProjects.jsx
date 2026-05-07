@@ -10,6 +10,7 @@ import { Button }    from "../components/ui/button";
 import { Badge }     from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import api from "../utils/api";
+import { imgUrl } from "../utils/imageUrl";
 import { toast } from "sonner";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -263,10 +264,10 @@ function ProjectCard({ project, onEdit, onDelete, onSubmitReview, onToggleStatus
         {(project.sketchImage || project.projectImages?.length > 0) && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {project.sketchImage && (
-              <img src={project.sketchImage.url} alt="sketch" className="w-14 h-10 object-cover rounded-md border border-border shrink-0" />
+              <img src={imgUrl(project.sketchImage.url)} alt="sketch" className="w-14 h-10 object-cover rounded-md border border-border shrink-0" />
             )}
             {project.projectImages?.map((img) => (
-              <img key={img.publicId} src={img.url} alt="project" className="w-14 h-10 object-cover rounded-md border border-border shrink-0" />
+              <img key={img.publicId} src={imgUrl(img.url)} alt="project" className="w-14 h-10 object-cover rounded-md border border-border shrink-0" />
             ))}
           </div>
         )}

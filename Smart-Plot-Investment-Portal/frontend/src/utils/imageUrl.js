@@ -8,9 +8,7 @@ const BASE = import.meta.env.VITE_API_URL || "";
 export function imgUrl(path) {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  // In dev with Vite proxy, relative paths work directly
-  // In prod, prepend the backend base URL
-  if (BASE && !BASE.includes("localhost")) {
+  if (BASE) {
     return `${BASE.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
   }
   return path;

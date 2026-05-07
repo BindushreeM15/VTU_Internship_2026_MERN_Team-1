@@ -1,6 +1,6 @@
 const Booking = require("../models/booking");
 const Plot = require("../models/Plot");
-const User = require("../models/User");
+const { SnipUser: User } = require("../models/User");
 const { sendBookingConfirmationEmail } = require("../utils/sendEmail");
 
 // POST /api/bookings/block
@@ -391,8 +391,28 @@ const sendConfirmationEmail = async (req, res) => {
       message: "Confirmation email sent successfully",
     });
   } catch (error) {
-    console.error("Send confirmation email error:", error);
-    return res.status(500).json({ message: "Failed to send email. Please try again." });
+    console.error("Send confirmation email error:", error.message);
+    
+    // Email service not configured
+    if (error.message.includes("not configured")) {
+      return res.status(503).json({ 
+        message: "Email service is currently unavailable. Please try again later.",
+        error: "EMAIL_NOT_CONFIGURED"
+      });
+    }
+    
+    // SMTP authentication errors
+    if (error.message.includes("Invalid login") || error.message.includes("EAUTH")) {
+      return res.status(500).json({ 
+        message: "Email authentication failed. Please contact support.",
+        error: "SMTP_AUTH_FAILED"
+      });
+    }
+    
+    return res.status(500).json({ 
+      message: "Failed to send email. Please try again later.",
+      error: error.message 
+    });
   }
 };
 

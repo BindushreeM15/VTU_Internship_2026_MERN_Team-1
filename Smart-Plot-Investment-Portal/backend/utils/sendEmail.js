@@ -1,29 +1,51 @@
 const nodemailer = require("nodemailer");
 
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-  throw new Error("SMTP_USER and SMTP_PASS must be defined in environment variables");
+const smtpUser = process.env.SMTP_USER?.trim();
+const smtpPass = process.env.SMTP_PASS?.trim();
+
+console.log("📧 Email config - User:", smtpUser ? "✓ Set" : "✗ Missing");
+
+let transporter = null;
+
+if (smtpUser && smtpPass) {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  // Test connection on startup (non-blocking)
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ SMTP verify error:", error.message);
+    } else if (success) {
+      console.log("✅ SMTP connection verified");
+    }
+  });
+} else {
+  console.warn("⚠️ SMTP credentials not set - email notifications will be unavailable");
 }
 
-const transporter = nodemailer.createTransport({
-  service: "gmail", // ✅ use Gmail service
-  auth: {
-    user: process.env.SMTP_USER, // your gmail
-    pass: process.env.SMTP_PASS, // app password (NOT your real password)
-  },
-});
-
 const sendEmail = async (to, subject, html) => {
+  if (!transporter) {
+    console.warn("⚠️ Email not sent (SMTP not configured):", subject);
+    throw new Error("Email service not configured - SMTP_USER or SMTP_PASS missing");
+  }
+
   try {
-    await transporter.sendMail({
-      from: `"Smart Plot" <${process.env.SMTP_USER}>`,
+    const mailOptions = {
+      from: `"Smart Plot" <${smtpUser}>`,
       to,
       subject,
       html,
-    });
-
-    console.log("✅ Email sent successfully");
+    };
+    
+    await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent successfully to:", to);
   } catch (error) {
-    console.error("❌ Email sending failed:", error);
+    console.error("❌ Email sending failed:", error.message);
     throw error;
   }
 };

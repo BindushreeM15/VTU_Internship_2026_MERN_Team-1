@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import api from "../utils/api";
+import { imgUrl } from "../utils/imageUrl";
 import {
   Search, MapPin, SlidersHorizontal, X, Building2,
   ChevronLeft, ChevronRight, Eye, Heart, ArrowRight, Filter,
@@ -77,9 +78,9 @@ function Slideshow({ images, companyName }) {
 function ProjectCard({ project, isLoggedIn }) {
   const navigate = useNavigate();
   const allImages = [
-    ...(project.sketchImage ? [project.sketchImage.url] : []),
-    ...(project.projectImages || []).map(i => i.url),
-    ...(project.plotImages || []).map(i => i.url),
+    ...(project.sketchImage ? [imgUrl(project.sketchImage.url)] : []),
+    ...(project.projectImages || []).map(i => imgUrl(i.url)),
+    ...(project.plotImages || []).map(i => imgUrl(i.url)),
   ];
 
   return (

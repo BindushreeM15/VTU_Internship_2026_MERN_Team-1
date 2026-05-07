@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "../components/ui/badge"; 
 import { Button } from "../components/ui/button";
 import api from "../utils/api";
+import { imgUrl } from "../utils/imageUrl";
 import {
     Search,
     MapPin,
@@ -165,9 +166,9 @@ function ProjectCard({ project, isLoggedIn }) {
     const navigate = useNavigate();
 
     const allImages = [
-        ...(project.sketchImage ? [project.sketchImage.url] : []),
-        ...(project.projectImages || []).map((i) => i.url),
-        ...(project.plotImages || []).map((i) => i.url),
+        ...(project.sketchImage ? [imgUrl(project.sketchImage.url)] : []),
+        ...(project.projectImages || []).map((i) => imgUrl(i.url)),
+        ...(project.plotImages || []).map((i) => imgUrl(i.url)),
     ];
 
     const handleClick = () => {
