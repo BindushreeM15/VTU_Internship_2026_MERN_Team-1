@@ -428,26 +428,29 @@ export default function Home() {
             {/* ── HERO ────────────────────────────────────────────────────────── */}
             <section className="hero-section py-15 md:py-10">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-3xl space-y-6">
-                        <div className="anim-fadeup delay-0">
-                            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full"
+                    <div className="flex flex-col items-center text-center gap-8 lg:gap-12">
+                        {/* Left Content */}
+                        <div className="space-y-6">
+                            <div className="anim-fadeup delay-0 inline-flex items-center gap-2 text-lg font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full"
                                 style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                                <span className="shimmer w-1.5 h-1.5 rounded-full" style={{ background: "var(--primary)", display: "inline-block" }} /> India's Premier Plot Investment Platform </span>
-                        </div>
-                        <h1 className="display-font anim-fadeup delay-100" style={{ fontSize: "clamp(2.5rem,5vw,4.5rem)", lineHeight: 1.08, fontWeight: 800 }}> Find Your Perfect <br />
-                            <span className="text-gradient">Plot Investment</span>
-                        </h1>
-                        <p className="text-lg text-muted-foreground leading-relaxed max-w-xl anim-fadeup delay-200">
-                            Browse verified real estate projects from trusted builders. Transparent pricing, RERA compliant, direct builder access. </p>
-
-                        {/* Search */}
-                        <form onSubmit={handleHeroSearch} className="flex gap-3 max-w-xl anim-fadeup delay-300">
-                            <div className="relative flex-1">
-                                {/* <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" /> */}
-                                <input value={heroSearch} onChange={e => setHeroSearch(e.target.value)} placeholder="Search project or location…" className="form-input pl-10 py-3 w-full" style={{ borderRadius: "var(--radius-xl)" }} />
+                                <span className="shimmer w-1.5 h-1.5 rounded-full" style={{ background: "var(--primary)", display: "inline-block" }} /> India's Premier Plot Investment Platform
                             </div>
-                            <button type="submit" className="btn-primary px-6 py-3" style={{ borderRadius: "var(--radius-xl)", whiteSpace: "nowrap" }}> Search </button>
-                        </form>
+                            <h1 className="display-font anim-fadeup delay-100 mx-auto" style={{ fontSize: "clamp(2.5rem,5vw,4.5rem)", lineHeight: 1.08, fontWeight: 800 }}>
+                                Find Your Perfect <br />
+                                <span className="text-gradient">Plot Investment</span>
+                            </h1>
+                            <p className="text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto anim-fadeup delay-200">
+                                Browse verified real estate projects from trusted builders. Transparent pricing, RERA compliant, direct builder access.
+                            </p>
+
+                            {/* Search */}
+                            <form onSubmit={handleHeroSearch} className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-xl mx-auto anim-fadeup delay-300">
+                                <div className="relative flex-1 w-full">
+                                    <input value={heroSearch} onChange={e => setHeroSearch(e.target.value)} placeholder="Search project or location…" className="form-input pl-10 py-3 w-full" style={{ borderRadius: "var(--radius-xl)" }} />
+                                </div>
+                                <button type="submit" className="btn-primary px-6 py-3 w-full sm:w-auto" style={{ borderRadius: "var(--radius-xl)", whiteSpace: "nowrap" }}>Search</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </section>
